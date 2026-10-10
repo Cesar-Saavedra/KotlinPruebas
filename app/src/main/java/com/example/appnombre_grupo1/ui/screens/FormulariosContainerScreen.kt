@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.example.appnombre_grupo1.ui.screens.forms.MantenimientoScreen
 import com.example.appnombre_grupo1.ui.screens.forms.MenuFormulariosScreen
@@ -17,7 +18,7 @@ enum class EstadoNavegacionFormularios {
 
 @Composable
 fun FormulariosContainerScreen() {
-    var pantallaActual by remember { mutableStateOf(EstadoNavegacionFormularios.MENU) }
+    var pantallaActual by rememberSaveable{ mutableStateOf(EstadoNavegacionFormularios.MENU) }
 
     when (pantallaActual) {
         EstadoNavegacionFormularios.MENU -> MenuFormulariosScreen(
