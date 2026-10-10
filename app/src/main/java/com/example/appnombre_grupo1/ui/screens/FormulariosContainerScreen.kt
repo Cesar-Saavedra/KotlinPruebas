@@ -1,6 +1,10 @@
 package com.example.appnombre_grupo1.ui.screens
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.example.appnombre_grupo1.ui.screens.forms.MantenimientoScreen
 import com.example.appnombre_grupo1.ui.screens.forms.MenuFormulariosScreen
 import com.example.appnombre_grupo1.ui.screens.forms.PruebasElectricasScreen

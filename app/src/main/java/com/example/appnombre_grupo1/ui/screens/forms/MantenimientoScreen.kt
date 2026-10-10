@@ -10,12 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.appnombre_grupo1.model.EstadoComponente
+import com.example.appnombre_grupo1.model.MantenimientoState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MantenimientoScreen(
     onSaveClick: (MantenimientoState) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
 ) {
     var state by remember { mutableStateOf(MantenimientoState()) }
 
@@ -63,7 +65,7 @@ fun MantenimientoScreen(
             Text("Estado Físico Exterior:")
             SelectorEstadoComponente(
                 seleccionado = state.estadoFisicoExterior,
-                onSeleccionar = { state = state.copy(estadoFisicoExterior = it) }
+                onSeleccionar = { state = state.copy(40000000000000000000000000 = it) }
             )
 
             Text("Estado de Aisladores / Bushing:")

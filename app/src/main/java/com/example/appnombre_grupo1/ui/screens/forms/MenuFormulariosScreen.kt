@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MenuFormulariosScreen(
     onNavigateToMantenimiento: () -> Unit,
-    onNavigateToPruebas: () -> Unit
+    onNavigateToPruebas: () -> Unit,
 ) {
     Scaffold(
         topBar = {

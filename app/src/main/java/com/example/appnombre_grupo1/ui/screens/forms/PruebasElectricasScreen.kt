@@ -11,12 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.appnombre_grupo1.model.PruebasElectricasState
+import com.example.appnombre_grupo1.model.VeredictoPrueba
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PruebasElectricasScreen(
     onSaveClick: (PruebasElectricasState) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
 ) {
     var state by remember { mutableStateOf(PruebasElectricasState()) }
 
@@ -96,7 +98,7 @@ fun PruebasElectricasScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                VeredictoPrueba.values().forEach { veredicto ->
+                VeredictoPrueba.entries.forEach { veredicto ->
                     FilterChip(
                         selected = state.veredicto == veredicto,
                         onClick = { state = state.copy(veredicto = veredicto) },
