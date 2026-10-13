@@ -1,45 +1,95 @@
 package com.example.appnombre_grupo1.ui.screens
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import com.example.appnombre_grupo1.ui.screens.forms.MantenimientoScreen
-import com.example.appnombre_grupo1.ui.screens.forms.MenuFormulariosScreen
-import com.example.appnombre_grupo1.ui.screens.forms.PruebasElectricasScreen
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.appnombre_grupo1.ui.screens.forms.*
+import com.example.appnombre_grupo1.viewmodels.FormularioViewModel
 
-enum class EstadoNavegacionFormularios {
-    MENU,
+enum class PasoFormulario {
+    INICIO,
+    DATOS_GENERALES,
     MANTENIMIENTO,
     PRUEBAS
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FormulariosContainerScreen() {
-    var pantallaActual by rememberSaveable{ mutableStateOf(EstadoNavegacionFormularios.MENU) }
+fun FormulariosContainerScreen(
+    viewModel: FormularioViewModel = viewModel()
+) {
+    var pasoActual by remember { mutableStateOf(PasoFormulario.INICIO) }
 
-    when (pantallaActual) {
-        EstadoNavegacionFormularios.MENU -> MenuFormulariosScreen(
-            onNavigateToMantenimiento = { pantallaActual = EstadoNavegacionFormularios.MANTENIMIENTO },
-            onNavigateToPruebas = { pantallaActual = EstadoNavegacionFormularios.PRUEBAS }
-        )
+    val datosGenerales by viewModel.datosGenerales.collectAsState()
+    val mantenimientoState by viewModel.mantenimientoState.collectAsState()
+    val pruebasState by viewModel.pruebasElectricasState.collectAsState()
 
-        EstadoNavegacionFormularios.MANTENIMIENTO -> MantenimientoScreen(
-            onSaveClick = { _ ->
-                // Aquí guardarás los datos cuando integres la base de datos local (Room)
-                pantallaActual = EstadoNavegacionFormularios.MENU
-            },
-            onBackClick = { pantallaActual = EstadoNavegacionFormularios.MENU }
-        )
+    when (pasoActual) {
+        PasoFormulario.INICIO -> {
+            Scaffold(
+                topBar = { TopAppBar(title = { Text("Induztek - Registro de Terreno") }) }
+            ) { padding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Button(
+                        onClick = {
+                            viewModel.reiniciarRegistro()
+                            pasoActual = PasoFormulario.DATOS_GENERALES
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(56.dp)
+                    ) {
+                        Text("Nuevo Registro", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
 
-        EstadoNavegacionFormularios.PRUEBAS -> PruebasElectricasScreen(
-            onSaveClick = { _ ->
-                // Aquí guardarás los datos cuando integres la base de datos local (Room)
-                pantallaActual = EstadoNavegacionFormularios.MENU
-            },
-            onBackClick = { pantallaActual = EstadoNavegacionFormularios.MENU }
-        )
+        PasoFormulario.DATOS_GENERALES -> {
+            RegistroGeneralScreen(
+                datosIniciales = datosGenerales,
+                onContinuarMantenimiento = { datos ->
+                    viewModel.actualizarDatosGenerales(datos)
+                    pasoActual = PasoFormulario.MANTENIMIENTO
+                },
+                onContinuarPruebas = { datos ->
+                    viewModel.actualizarDatosGenerales(datos)
+                    pasoActual = PasoFormulario.PRUEBAS
+                }
+            )
+        }
+
+        PasoFormulario.MANTENIMIENTO -> {
+            MantenimientoScreen(
+                initialState = mantenimientoState,
+                onSaveClick = { nuevoEstado ->
+                    viewModel.actualizarMantenimiento(nuevoEstado)
+                    // Guardado final en ViewModel / BD
+                    pasoActual = PasoFormulario.INICIO
+                },
+                onBackClick = { pasoActual = PasoFormulario.DATOS_GENERALES }
+            )
+        }
+
+        PasoFormulario.PRUEBAS -> {
+            PruebasElectricasScreen(
+                initialState = pruebasState,
+                onSaveClick = { nuevoEstado ->
+                    viewModel.actualizarPruebas(nuevoEstado)
+                    // Guardado final en ViewModel / BD
+                    pasoActual = PasoFormulario.INICIO
+                },
+                onBackClick = { pasoActual = PasoFormulario.DATOS_GENERALES }
+            )
+        }
     }
 }

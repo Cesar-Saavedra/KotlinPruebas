@@ -17,10 +17,11 @@ import com.example.appnombre_grupo1.model.VeredictoPrueba
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PruebasElectricasScreen(
+    initialState: PruebasElectricasState,
     onSaveClick: (PruebasElectricasState) -> Unit,
-    onBackClick: () -> Unit,
+    onBackClick: () -> Unit
 ) {
-    var state by remember { mutableStateOf(PruebasElectricasState()) }
+    var state by remember { mutableStateOf(initialState) }
 
     Scaffold(
         topBar = {
@@ -105,6 +106,16 @@ fun PruebasElectricasScreen(
                         label = { Text(veredicto.label) }
                     )
                 }
+            }
+
+            if (state.veredicto == VeredictoPrueba.OBSERVADO || state.veredicto == VeredictoPrueba.RECHAZADO) {
+                OutlinedTextField(
+                    value = state.notasTecnicas,
+                    onValueChange = { state = state.copy(notasTecnicas = it) },
+                    label = { Text("Detalle / Observación del veredicto") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))

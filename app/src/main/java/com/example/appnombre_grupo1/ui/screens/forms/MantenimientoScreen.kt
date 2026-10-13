@@ -1,37 +1,13 @@
 package com.example.appnombre_grupo1.ui.screens.forms
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.EstadoComponente
 import com.example.appnombre_grupo1.model.MantenimientoState
@@ -39,21 +15,19 @@ import com.example.appnombre_grupo1.model.MantenimientoState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MantenimientoScreen(
+    initialState: MantenimientoState,
     onSaveClick: (MantenimientoState) -> Unit,
-    onBackClick: () -> Unit,
+    onBackClick: () -> Unit
 ) {
-    var state by remember { mutableStateOf(MantenimientoState()) }
+    var state by remember { mutableStateOf(initialState) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Protocolo de Mantenimiento") },
+                title = { Text("Mantenimiento: ${state.datosGenerales.codigoEquipo}") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar a la pantalla principal"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
                     }
                 }
             )
@@ -67,148 +41,130 @@ fun MantenimientoScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("1. Identificación y Entorno", style = MaterialTheme.typography.titleMedium)
+            Text("Inspección de Componentes", style = MaterialTheme.typography.titleMedium)
 
-            OutlinedTextField(
-                value = state.datosGenerales.cliente,
-                onValueChange = { state = state.copy(datosGenerales = state.datosGenerales.copy(cliente = it)) },
-                label = { Text("Cliente / Subestación") },
-                modifier = Modifier.fillMaxWidth()
+            // 1. Estado Físico Exterior
+            SeccionEstadoComponente(
+                titulo = "Estado Físico Exterior",
+                estado = state.estadoFisicoExterior,
+                descripcion = state.descripcionFisicoExterior,
+                onEstadoChange = { state = state.copy(estadoFisicoExterior = it) },
+                onDescripcionChange = { state = state.copy(descripcionFisicoExterior = it) }
             )
 
-            OutlinedTextField(
-                value = state.datosGenerales.codigoEquipo,
-                onValueChange = { state = state.copy(datosGenerales = state.datosGenerales.copy(codigoEquipo = it)) },
-                label = { Text("Código / ID Equipo (ej. TR-01)") },
-                modifier = Modifier.fillMaxWidth()
+            // 2. Estado de Aisladores
+            SeccionEstadoComponente(
+                titulo = "Estado de Aisladores / Bushing",
+                estado = state.estadoAisladores,
+                descripcion = state.descripcionAisladores,
+                onEstadoChange = { state = state.copy(estadoAisladores = it) },
+                onDescripcionChange = { state = state.copy(descripcionAisladores = it) }
             )
 
-            Text("2. Inspección Visual y Componentes", style = MaterialTheme.typography.titleMedium)
-
-            Text("Estado Físico Exterior:")
-            SelectorEstadoComponente(
-                seleccionado = state.estadoFisicoExterior,
-                onSeleccionar = { state = state.copy(estadoFisicoExterior = it) }
+            // 3. Estado de Regletas
+            SeccionEstadoComponente(
+                titulo = "Estado de las Regletas",
+                estado = state.estadoRegletas,
+                descripcion = state.descripcionRegletas,
+                onEstadoChange = { state = state.copy(estadoRegletas = it) },
+                onDescripcionChange = { state = state.copy(descripcionRegletas = it) }
             )
 
-            Text("Estado de Aisladores / Bushing:")
-            SelectorEstadoComponente(
-                seleccionado = state.estadoAisladores,
-                onSeleccionar = { state = state.copy(estadoAisladores = it) }
+            // 4. Estado de Contactores
+            SeccionEstadoComponente(
+                titulo = "Estado de los Contactores",
+                estado = state.estadoContactores,
+                descripcion = state.descripcionContactores,
+                onEstadoChange = { state = state.copy(estadoContactores = it) },
+                onDescripcionChange = { state = state.copy(descripcionContactores = it) }
             )
 
-            ItemSwitchCheck(
-                label = "Sistema de puesta a tierra OK",
-                checked = state.sistemaTierraOk,
-                onCheckedChange = { state = state.copy(sistemaTierraOk = it) }
+            // 5. Estado de Cables
+            SeccionEstadoComponente(
+                titulo = "Estado de los Cables",
+                estado = state.estadoCables,
+                descripcion = state.descripcionCables,
+                onEstadoChange = { state = state.copy(estadoCables = it) },
+                onDescripcionChange = { state = state.copy(descripcionCables = it) }
             )
 
-            ItemSwitchCheck(
-                label = "Sin fugas de aceite / aislante",
-                checked = state.sinFugasAceite,
-                onCheckedChange = { state = state.copy(sinFugasAceite = it) }
+            // 6. Estado de Luces Piloto
+            SeccionEstadoComponente(
+                titulo = "Estado de Luces Piloto",
+                estado = state.estadoLucesPiloto,
+                descripcion = state.descripcionLucesPiloto,
+                onEstadoChange = { state = state.copy(estadoLucesPiloto = it) },
+                onDescripcionChange = { state = state.copy(descripcionLucesPiloto = it) }
             )
 
-            Text("3. Tareas Realizadas", style = MaterialTheme.typography.titleMedium)
-
-            ItemSwitchCheck(
-                label = "Limpieza general dieléctrica",
-                checked = state.limpiezaRealizada,
-                onCheckedChange = { state = state.copy(limpiezaRealizada = it) }
+            // 7. Estado de Canaletas
+            SeccionEstadoComponente(
+                titulo = "Estado de Canaletas",
+                estado = state.estadoCanaletas,
+                descripcion = state.descripcionCanaletas,
+                onEstadoChange = { state = state.copy(estadoCanaletas = it) },
+                onDescripcionChange = { state = state.copy(descripcionCanaletas = it) }
             )
 
-            ItemSwitchCheck(
-                label = "Reapriete y torqueo de bornes",
-                checked = state.reajusteTorqueRealizado,
-                onCheckedChange = { state = state.copy(reajusteTorqueRealizado = it) }
-            )
-
-            ItemSwitchCheck(
-                label = "Lubricación de mecanismos móviles",
-                checked = state.lubricacionRealizada,
-                onCheckedChange = { state = state.copy(lubricacionRealizada = it) }
-            )
-
+            Text("Observaciones Generales", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = state.observaciones,
                 onValueChange = { state = state.copy(observaciones = it) },
-                label = { Text("Observaciones / Hallazgos") },
+                label = { Text("Detalles adicionales de la visita") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Botón de guardado
             Button(
                 onClick = { onSaveClick(state) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar Registro de Mantenimiento")
+                Text("Guardar Mantenimiento")
             }
 
-            // Botón secundario para regresar
             OutlinedButton(
                 onClick = onBackClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Volver al Menú Principal")
+                Text("Volver")
             }
         }
     }
 }
 
 @Composable
-private fun SelectorEstadoComponente(
-    seleccionado: EstadoComponente,
-    onSeleccionar: (EstadoComponente) -> Unit,
-    modifier: Modifier = Modifier
+fun SeccionEstadoComponente(
+    titulo: String,
+    estado: EstadoComponente,
+    descripcion: String,
+    onEstadoChange: (EstadoComponente) -> Unit,
+    onDescripcionChange: (String) -> Unit
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        EstadoComponente.entries.forEach { estado ->
-            FilterChip(
-                selected = seleccionado == estado,
-                onClick = { onSeleccionar(estado) },
-                label = { Text(estado.label) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(titulo, style = MaterialTheme.typography.bodyMedium)
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            EstadoComponente.values().forEach { op ->
+                FilterChip(
+                    selected = estado == op,
+                    onClick = { onEstadoChange(op) },
+                    label = { Text(op.label) }
+                )
+            }
+        }
+
+        // Muestra la caja de descripción si el estado es Regular o Malo (ni Bueno ni N/A)
+        if (estado != EstadoComponente.BUENO && estado != EstadoComponente.NO_APLICA) {
+            OutlinedTextField(
+                value = descripcion,
+                onValueChange = onDescripcionChange,
+                label = { Text("Detalle / Observación de $titulo") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
         }
-    }
-}
-
-@Composable
-private fun ItemSwitchCheck(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun MantenimientoScreenPreview() {
-    MaterialTheme {
-        MantenimientoScreen(
-            onSaveClick = {},
-            onBackClick = {}
-        )
     }
 }
