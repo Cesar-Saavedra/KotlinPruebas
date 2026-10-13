@@ -16,10 +16,12 @@ import com.example.appnombre_grupo1.model.MantenimientoState
 @Composable
 fun MantenimientoScreen(
     initialState: MantenimientoState,
+    onStateChange: (MantenimientoState) -> Unit,
     onSaveClick: (MantenimientoState) -> Unit,
     onBackClick: () -> Unit
 ) {
-    var state by remember { mutableStateOf(initialState) }
+    // Usamos el estado que proviene directamente del ViewModel
+    val state = initialState
 
     Scaffold(
         topBar = {
@@ -48,8 +50,8 @@ fun MantenimientoScreen(
                 titulo = "Estado Físico Exterior",
                 estado = state.estadoFisicoExterior,
                 descripcion = state.descripcionFisicoExterior,
-                onEstadoChange = { state = state.copy(estadoFisicoExterior = it) },
-                onDescripcionChange = { state = state.copy(descripcionFisicoExterior = it) }
+                onEstadoChange = { onStateChange (state.copy(estadoFisicoExterior = it)) },
+                onDescripcionChange = { onStateChange (state.copy(descripcionFisicoExterior = it)) }
             )
 
             // 2. Estado de Aisladores
@@ -57,8 +59,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de Aisladores / Bushing",
                 estado = state.estadoAisladores,
                 descripcion = state.descripcionAisladores,
-                onEstadoChange = { state = state.copy(estadoAisladores = it) },
-                onDescripcionChange = { state = state.copy(descripcionAisladores = it) }
+                onEstadoChange = { onStateChange (state.copy(estadoAisladores = it)) },
+                onDescripcionChange = { onStateChange (state.copy(descripcionAisladores = it)) }
             )
 
             // 3. Estado de Regletas
@@ -66,8 +68,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de las Regletas",
                 estado = state.estadoRegletas,
                 descripcion = state.descripcionRegletas,
-                onEstadoChange = { state = state.copy(estadoRegletas = it) },
-                onDescripcionChange = { state = state.copy(descripcionRegletas = it) }
+                onEstadoChange = { onStateChange (state.copy(estadoRegletas = it)) },
+                onDescripcionChange = { onStateChange (state.copy(descripcionRegletas = it)) }
             )
 
             // 4. Estado de Contactores
@@ -75,8 +77,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de los Contactores",
                 estado = state.estadoContactores,
                 descripcion = state.descripcionContactores,
-                onEstadoChange = { state = state.copy(estadoContactores = it) },
-                onDescripcionChange = { state = state.copy(descripcionContactores = it) }
+                onEstadoChange = { onStateChange ( state.copy(estadoContactores = it)) },
+                onDescripcionChange = { onStateChange ( state.copy(descripcionContactores = it)) }
             )
 
             // 5. Estado de Cables
@@ -84,8 +86,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de los Cables",
                 estado = state.estadoCables,
                 descripcion = state.descripcionCables,
-                onEstadoChange = { state = state.copy(estadoCables = it) },
-                onDescripcionChange = { state = state.copy(descripcionCables = it) }
+                onEstadoChange = { onStateChange ( state.copy(estadoCables = it)) },
+                onDescripcionChange = { onStateChange ( state.copy(descripcionCables = it)) }
             )
 
             // 6. Estado de Luces Piloto
@@ -93,8 +95,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de Luces Piloto",
                 estado = state.estadoLucesPiloto,
                 descripcion = state.descripcionLucesPiloto,
-                onEstadoChange = { state = state.copy(estadoLucesPiloto = it) },
-                onDescripcionChange = { state = state.copy(descripcionLucesPiloto = it) }
+                onEstadoChange = { onStateChange ( state.copy(estadoLucesPiloto = it)) },
+                onDescripcionChange = { onStateChange ( state.copy(descripcionLucesPiloto = it)) }
             )
 
             // 7. Estado de Canaletas
@@ -102,14 +104,14 @@ fun MantenimientoScreen(
                 titulo = "Estado de Canaletas",
                 estado = state.estadoCanaletas,
                 descripcion = state.descripcionCanaletas,
-                onEstadoChange = { state = state.copy(estadoCanaletas = it) },
-                onDescripcionChange = { state = state.copy(descripcionCanaletas = it) }
+                onEstadoChange = { onStateChange ( state.copy(estadoCanaletas = it)) },
+                onDescripcionChange = { onStateChange ( state.copy(descripcionCanaletas = it)) }
             )
 
             Text("Observaciones Generales", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = state.observaciones,
-                onValueChange = { state = state.copy(observaciones = it) },
+                onValueChange = { onStateChange ( state.copy(observaciones = it)) },
                 label = { Text("Detalles adicionales de la visita") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3

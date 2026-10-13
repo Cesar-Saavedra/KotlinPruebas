@@ -18,11 +18,10 @@ import com.example.appnombre_grupo1.model.VeredictoPrueba
 @Composable
 fun PruebasElectricasScreen(
     initialState: PruebasElectricasState,
+    onStateChange: (PruebasElectricasState) -> Unit,
     onSaveClick: (PruebasElectricasState) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
 ) {
-    var state by remember { mutableStateOf(initialState) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -31,7 +30,7 @@ fun PruebasElectricasScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar a la pantalla principal"
+                            contentDescription = "Regresar a la pantalla principal",
                         )
                     }
                 }
@@ -49,8 +48,8 @@ fun PruebasElectricasScreen(
             Text("1. Datos del Equipo", style = MaterialTheme.typography.titleMedium)
 
             OutlinedTextField(
-                value = state.datosGenerales.codigoEquipo,
-                onValueChange = { state = state.copy(datosGenerales = state.datosGenerales.copy(codigoEquipo = it)) },
+                value = initialState.datosGenerales.codigoEquipo,
+                onValueChange = { onStateChange(initialState.copy(datosGenerales = initialState.datosGenerales.copy(codigoEquipo = it))) },
                 label = { Text("Código / Tag del Equipo") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -58,16 +57,16 @@ fun PruebasElectricasScreen(
             Text("2. Mediciones de Aislamiento y Resistencia", style = MaterialTheme.typography.titleMedium)
 
             OutlinedTextField(
-                value = state.resistenciaAislamientoMOhm,
-                onValueChange = { state = state.copy(resistenciaAislamientoMOhm = it) },
+                value = initialState.resistenciaAislamientoMOhm,
+                onValueChange = { onStateChange(initialState.copy(resistenciaAislamientoMOhm = it)) },
                 label = { Text("Resistencia de Aislamiento (MΩ)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
-                value = state.resistenciaContactoMicroOhm,
-                onValueChange = { state = state.copy(resistenciaContactoMicroOhm = it) },
+                value = initialState.resistenciaContactoMicroOhm,
+                onValueChange = { onStateChange(initialState.copy(resistenciaContactoMicroOhm = it)) },
                 label = { Text("Resistencia de Contacto (µΩ)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
@@ -77,16 +76,16 @@ fun PruebasElectricasScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = state.voltajeLineaV,
-                    onValueChange = { state = state.copy(voltajeLineaV = it) },
+                    value = initialState.voltajeLineaV,
+                    onValueChange = { onStateChange(initialState.copy(voltajeLineaV = it)) },
                     label = { Text("Voltaje (V)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
 
                 OutlinedTextField(
-                    value = state.corrienteCargaA,
-                    onValueChange = { state = state.copy(corrienteCargaA = it) },
+                    value = initialState.corrienteCargaA,
+                    onValueChange = { onStateChange(initialState.copy(corrienteCargaA = it)) },
                     label = { Text("Corriente (A)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
@@ -101,17 +100,17 @@ fun PruebasElectricasScreen(
             ) {
                 VeredictoPrueba.entries.forEach { veredicto ->
                     FilterChip(
-                        selected = state.veredicto == veredicto,
-                        onClick = { state = state.copy(veredicto = veredicto) },
+                        selected = initialState.veredicto == veredicto,
+                        onClick = { onStateChange(initialState.copy(veredicto = veredicto)) },
                         label = { Text(veredicto.label) }
                     )
                 }
             }
 
-            if (state.veredicto == VeredictoPrueba.OBSERVADO || state.veredicto == VeredictoPrueba.RECHAZADO) {
+            if ((initialState.veredicto == VeredictoPrueba.OBSERVADO) || (initialState.veredicto == VeredictoPrueba.RECHAZADO)) {
                 OutlinedTextField(
-                    value = state.notasTecnicas,
-                    onValueChange = { state = state.copy(notasTecnicas = it) },
+                    value = initialState.notasTecnicas,
+                    onValueChange = { onStateChange(initialState.copy(notasTecnicas = it)) },
                     label = { Text("Detalle / Observación del veredicto") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
@@ -122,7 +121,7 @@ fun PruebasElectricasScreen(
 
             // Botón de guardado
             Button(
-                onClick = { onSaveClick(state) },
+                onClick = { onSaveClick(initialState) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Guardar Protocolo de Prueba")

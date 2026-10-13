@@ -20,9 +20,10 @@ enum class PasoFormulario {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormulariosContainerScreen(
-    viewModel: FormularioViewModel = viewModel()
+    viewModel: FormularioViewModel = viewModel(),
 ) {
-    var pasoActual by remember { mutableStateOf(PasoFormulario.INICIO) }
+    // Observamos la navegación desde el ViewModel
+    val pasoActual by viewModel.pasoActual.collectAsState()
 
     val datosGenerales by viewModel.datosGenerales.collectAsState()
     val mantenimientoState by viewModel.mantenimientoState.collectAsState()
@@ -40,10 +41,7 @@ fun FormulariosContainerScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Button(
-                        onClick = {
-                            viewModel.reiniciarRegistro()
-                            pasoActual = PasoFormulario.DATOS_GENERALES
-                        },
+                        onClick = { viewModel.reiniciarRegistro() },
                         modifier = Modifier
                             .fillMaxWidth(0.8f)
                             .height(56.dp)
@@ -56,14 +54,15 @@ fun FormulariosContainerScreen(
 
         PasoFormulario.DATOS_GENERALES -> {
             RegistroGeneralScreen(
-                datosIniciales = datosGenerales,
+                initialState = datosGenerales,
+                onStateChange = { datos -> viewModel.actualizarDatosGenerales(datos) },
                 onContinuarMantenimiento = { datos ->
                     viewModel.actualizarDatosGenerales(datos)
-                    pasoActual = PasoFormulario.MANTENIMIENTO
+                    viewModel.navegarA(PasoFormulario.MANTENIMIENTO)
                 },
                 onContinuarPruebas = { datos ->
                     viewModel.actualizarDatosGenerales(datos)
-                    pasoActual = PasoFormulario.PRUEBAS
+                    viewModel.navegarA(PasoFormulario.PRUEBAS)
                 }
             )
         }
@@ -71,24 +70,26 @@ fun FormulariosContainerScreen(
         PasoFormulario.MANTENIMIENTO -> {
             MantenimientoScreen(
                 initialState = mantenimientoState,
+                onStateChange = { nuevoEstado -> viewModel.actualizarMantenimiento(nuevoEstado) },
                 onSaveClick = { nuevoEstado ->
                     viewModel.actualizarMantenimiento(nuevoEstado)
-                    // Guardado final en ViewModel / BD
-                    pasoActual = PasoFormulario.INICIO
+                    // Guardado final local/remoto
+                    viewModel.navegarA(PasoFormulario.INICIO)
                 },
-                onBackClick = { pasoActual = PasoFormulario.DATOS_GENERALES }
+                onBackClick = { viewModel.navegarA(PasoFormulario.DATOS_GENERALES) }
             )
         }
 
         PasoFormulario.PRUEBAS -> {
             PruebasElectricasScreen(
                 initialState = pruebasState,
+                onStateChange = { nuevoEstado -> viewModel.actualizarPruebas(nuevoEstado) },
                 onSaveClick = { nuevoEstado ->
                     viewModel.actualizarPruebas(nuevoEstado)
-                    // Guardado final en ViewModel / BD
-                    pasoActual = PasoFormulario.INICIO
+                    // Guardado final local/remoto
+                    viewModel.navegarA(PasoFormulario.INICIO)
                 },
-                onBackClick = { pasoActual = PasoFormulario.DATOS_GENERALES }
+                onBackClick = { viewModel.navegarA(PasoFormulario.DATOS_GENERALES) }
             )
         }
     }

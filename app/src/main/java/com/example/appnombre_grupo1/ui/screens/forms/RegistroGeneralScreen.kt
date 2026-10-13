@@ -34,31 +34,18 @@ import com.example.appnombre_grupo1.model.DatosGeneralesValidator
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistroGeneralScreen(
-    datosIniciales: DatosGeneralesForm,
+    initialState: DatosGeneralesForm,
+    onStateChange: (DatosGeneralesForm) -> Unit,
     onContinuarMantenimiento: (DatosGeneralesForm) -> Unit,
     onContinuarPruebas: (DatosGeneralesForm) -> Unit,
 ) {
-    var cliente by remember { mutableStateOf(datosIniciales.cliente) }
-    var instalacion by remember { mutableStateOf(datosIniciales.instalacion) }
-    var tecnico by remember { mutableStateOf(datosIniciales.tecnico) }
-    var tipoEquipo by remember { mutableStateOf(datosIniciales.tipoEquipo) }
-    var codigoEquipo by remember { mutableStateOf(datosIniciales.codigoEquipo) }
-
     var showErrors by remember { mutableStateOf(value = false) }
     val validator = remember { DatosGeneralesValidator() }
 
-    val datosActuales = DatosGeneralesForm(
-        cliente = cliente,
-        instalacion = instalacion,
-        tecnico = tecnico,
-        tipoEquipo = tipoEquipo,
-        codigoEquipo = codigoEquipo
-    )
-
-    val validationResult = validator.validate(datosActuales)
+    val validationResult = validator.validate(initialState)
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Nuevo Registro de Terreno") }) }
+        topBar = { TopAppBar(title = { Text("Nuevo Registro de Terreno") }) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -66,13 +53,13 @@ fun RegistroGeneralScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text("Datos del Cliente y Equipo", style = MaterialTheme.typography.titleMedium)
 
             OutlinedTextField(
-                value = cliente,
-                onValueChange = { cliente = it },
+                value = initialState.cliente,
+                onValueChange = { onStateChange(initialState.copy(cliente = it)) },
                 label = { Text("Cliente *") },
                 isError = (showErrors && (validationResult.clienteError != null)),
                 supportingText = {
@@ -84,8 +71,8 @@ fun RegistroGeneralScreen(
             )
 
             OutlinedTextField(
-                value = instalacion,
-                onValueChange = { instalacion = it },
+                value = initialState.instalacion,
+                onValueChange = { onStateChange(initialState.copy(instalacion = it)) },
                 label = { Text("Instalación / Subestación *") },
                 isError = (showErrors && (validationResult.instalacionError != null)),
                 supportingText = {
@@ -97,8 +84,8 @@ fun RegistroGeneralScreen(
             )
 
             OutlinedTextField(
-                value = tecnico,
-                onValueChange = { tecnico = it },
+                value = initialState.tecnico,
+                onValueChange = { onStateChange(initialState.copy(tecnico = it)) },
                 label = { Text("Técnico / Ingeniero a cargo *") },
                 isError = (showErrors && (validationResult.tecnicoError != null)),
                 supportingText = {
@@ -110,8 +97,8 @@ fun RegistroGeneralScreen(
             )
 
             OutlinedTextField(
-                value = tipoEquipo,
-                onValueChange = { tipoEquipo = it },
+                value = initialState.tipoEquipo,
+                onValueChange = { onStateChange(initialState.copy(tipoEquipo = it)) },
                 label = { Text("Tipo de Equipo (ej. Transformador, Celda) *") },
                 isError = (showErrors && (validationResult.tipoEquipoError != null)),
                 supportingText = {
@@ -123,8 +110,8 @@ fun RegistroGeneralScreen(
             )
 
             OutlinedTextField(
-                value = codigoEquipo,
-                onValueChange = { codigoEquipo = it },
+                value = initialState.codigoEquipo,
+                onValueChange = { onStateChange(initialState.copy(codigoEquipo = it)) },
                 label = { Text("Código / ID / Tag del Equipo *") },
                 isError = (showErrors && (validationResult.codigoEquipoError != null)),
                 supportingText = {
@@ -143,7 +130,7 @@ fun RegistroGeneralScreen(
                 onClick = {
                     showErrors = true
                     if (validationResult.isValid) {
-                        onContinuarMantenimiento(datosActuales)
+                        onContinuarMantenimiento(initialState)
                     }
                 },
                 modifier = Modifier
@@ -158,7 +145,7 @@ fun RegistroGeneralScreen(
                 onClick = {
                     showErrors = true
                     if (validationResult.isValid) {
-                        onContinuarPruebas(datosActuales)
+                        onContinuarPruebas(initialState)
                     }
                 },
                 modifier = Modifier
