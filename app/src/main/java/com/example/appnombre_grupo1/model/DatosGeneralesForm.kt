@@ -7,5 +7,6 @@ data class DatosGeneralesForm(
     val tipoEquipo: String = "Transformador",
     val codigoEquipo: String = "",
     val temperaturaAmbiente: String = "",
-    val humedadRelativa: String = ""
+    val humedadRelativa: String = "",
+    val errores: DatosGeneralesErrores = DatosGeneralesErrores(),
 )
