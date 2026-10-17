@@ -65,7 +65,7 @@ fun MantenimientoScreen(
             Text("Estado Físico Exterior:")
             SelectorEstadoComponente(
                 seleccionado = state.estadoFisicoExterior,
-                onSeleccionar = { state = state.copy(40000000000000000000000000 = it) }
+                onSeleccionar = { state = state.copy(estadoFisicoExterior = it) }
             )
 
             Text("Estado de Aisladores / Bushing:")
