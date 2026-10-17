@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.DatosGeneralesForm
-import com.example.appnombre_grupo1.model.DatosGeneralesValidator
+import com.example.appnombre_grupo1.viewmodels.DatosGeneralesValidator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

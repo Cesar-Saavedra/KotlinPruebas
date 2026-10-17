@@ -7,30 +7,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.appnombre_grupo1.navigation.Screen
 import com.example.appnombre_grupo1.ui.screens.forms.*
 import com.example.appnombre_grupo1.viewmodels.FormularioViewModel
-
-enum class PasoFormulario {
-    INICIO,
-    DATOS_GENERALES,
-    MANTENIMIENTO,
-    PRUEBAS
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormulariosContainerScreen(
+    navController: NavHostController = rememberNavController(),
     viewModel: FormularioViewModel = viewModel(),
 ) {
-    // Observamos la navegación desde el ViewModel
-    val pasoActual by viewModel.pasoActual.collectAsState()
-
     val datosGenerales by viewModel.datosGenerales.collectAsState()
     val mantenimientoState by viewModel.mantenimientoState.collectAsState()
     val pruebasState by viewModel.pruebasElectricasState.collectAsState()
 
-    when (pasoActual) {
-        PasoFormulario.INICIO -> {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Form.route
+    ) {
+        composable(Screen.Form.route) {
             Scaffold(
                 topBar = { TopAppBar(title = { Text("Induztek - Registro de Terreno") }) }
             ) { padding ->
@@ -41,7 +40,10 @@ fun FormulariosContainerScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Button(
-                        onClick = { viewModel.reiniciarRegistro() },
+                        onClick = {
+                            viewModel.reiniciarRegistro()
+                            navController.navigate(Screen.GeneralForm.route)
+                        },
                         modifier = Modifier
                             .fillMaxWidth(0.8f)
                             .height(56.dp)
@@ -52,44 +54,48 @@ fun FormulariosContainerScreen(
             }
         }
 
-        PasoFormulario.DATOS_GENERALES -> {
+        composable(Screen.GeneralForm.route) {
             RegistroGeneralScreen(
                 initialState = datosGenerales,
                 onStateChange = { datos -> viewModel.actualizarDatosGenerales(datos) },
                 onContinuarMantenimiento = { datos ->
                     viewModel.actualizarDatosGenerales(datos)
-                    viewModel.navegarA(PasoFormulario.MANTENIMIENTO)
+                    navController.navigate(Screen.Maintenance.route)
                 },
                 onContinuarPruebas = { datos ->
                     viewModel.actualizarDatosGenerales(datos)
-                    viewModel.navegarA(PasoFormulario.PRUEBAS)
+                    navController.navigate(Screen.Test.route)
                 }
             )
         }
 
-        PasoFormulario.MANTENIMIENTO -> {
+        composable(Screen.Maintenance.route) {
             MantenimientoScreen(
                 initialState = mantenimientoState,
                 onStateChange = { nuevoEstado -> viewModel.actualizarMantenimiento(nuevoEstado) },
                 onSaveClick = { nuevoEstado ->
                     viewModel.actualizarMantenimiento(nuevoEstado)
-                    // Guardado final local/remoto
-                    viewModel.navegarA(PasoFormulario.INICIO)
+                    // Guardado final local/remoto y volver al inicio
+                    navController.navigate(Screen.Form.route) {
+                        popUpTo(Screen.Form.route) { inclusive = true }
+                    }
                 },
-                onBackClick = { viewModel.navegarA(PasoFormulario.DATOS_GENERALES) }
+                onBackClick = { navController.popBackStack() }
             )
         }
 
-        PasoFormulario.PRUEBAS -> {
+        composable(Screen.Test.route) {
             PruebasElectricasScreen(
                 initialState = pruebasState,
                 onStateChange = { nuevoEstado -> viewModel.actualizarPruebas(nuevoEstado) },
                 onSaveClick = { nuevoEstado ->
                     viewModel.actualizarPruebas(nuevoEstado)
-                    // Guardado final local/remoto
-                    viewModel.navegarA(PasoFormulario.INICIO)
+                    // Guardado final local/remoto y volver al inicio
+                    navController.navigate(Screen.Form.route) {
+                        popUpTo(Screen.Form.route) { inclusive = true }
+                    }
                 },
-                onBackClick = { viewModel.navegarA(PasoFormulario.DATOS_GENERALES) }
+                onBackClick = { navController.popBackStack() }
             )
         }
     }
