@@ -16,27 +16,23 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.DatosGeneralesForm
-import com.example.appnombre_grupo1.viewmodels.DatosGeneralesValidator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistroGeneralScreen(
-    initialState: DatosGeneralesForm,
+    state: DatosGeneralesForm,
+    mostrarErrores: Boolean,
     onStateChange: (DatosGeneralesForm) -> Unit,
-    onContinuarMantenimiento: (DatosGeneralesForm) -> Unit,
-    onContinuarPruebas: (DatosGeneralesForm) -> Unit,
+    onContinuarMantenimiento: () -> Unit,
+    onContinuarPruebas: () -> Unit,
 ) {
-    var showErrors by remember { mutableStateOf(value = false) }
-    val validator = remember { DatosGeneralesValidator() }
     val focusManager = LocalFocusManager.current
 
-    val form = validator.validate(initialState)
-
-    val clienteError = form.errores.cliente
-    val instalacionError = form.errores.instalacion
-    val tecnicoError = form.errores.tecnico
-    val tipoEquipoError = form.errores.tipoEquipo
-    val codigoEquipoError = form.errores.codigoEquipo
+    val clienteError = state.errores.cliente
+    val instalacionError = state.errores.instalacion
+    val tecnicoError = state.errores.tecnico
+    val tipoEquipoError = state.errores.tipoEquipo
+    val codigoEquipoError = state.errores.codigoEquipo
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Nuevo Registro de Terreno") }) },
@@ -52,12 +48,12 @@ fun RegistroGeneralScreen(
             Text("Datos del Cliente y Equipo", style = MaterialTheme.typography.titleMedium)
 
             OutlinedTextField(
-                value = form.cliente,
-                onValueChange = { onStateChange(validator.validate(form.copy(cliente = it))) },
+                value = state.cliente,
+                onValueChange = { onStateChange(state.copy(cliente = it)) },
                 label = { Text("Cliente *") },
-                isError = showErrors && (clienteError != null),
+                isError = mostrarErrores && (clienteError != null),
                 supportingText = {
-                    if (showErrors && (clienteError != null)) {
+                    if (mostrarErrores && (clienteError != null)) {
                         Text(clienteError, color = MaterialTheme.colorScheme.error)
                     }
                 },
@@ -68,12 +64,12 @@ fun RegistroGeneralScreen(
             )
 
             OutlinedTextField(
-                value = form.instalacion,
-                onValueChange = { onStateChange(validator.validate(form.copy(instalacion = it))) },
+                value = state.instalacion,
+                onValueChange = { onStateChange(state.copy(instalacion = it)) },
                 label = { Text("Instalación / Subestación *") },
-                isError = showErrors && (instalacionError != null),
+                isError = mostrarErrores && (instalacionError != null),
                 supportingText = {
-                    if (showErrors && (instalacionError != null)) {
+                    if (mostrarErrores && (instalacionError != null)) {
                         Text(instalacionError, color = MaterialTheme.colorScheme.error)
                     }
                 },
@@ -84,12 +80,12 @@ fun RegistroGeneralScreen(
             )
 
             OutlinedTextField(
-                value = form.tecnico,
-                onValueChange = { onStateChange(validator.validate(form.copy(tecnico = it))) },
+                value = state.tecnico,
+                onValueChange = { onStateChange(state.copy(tecnico = it)) },
                 label = { Text("Técnico / Ingeniero a cargo *") },
-                isError = showErrors && (tecnicoError != null),
+                isError = mostrarErrores && (tecnicoError != null),
                 supportingText = {
-                    if (showErrors && (tecnicoError != null)) {
+                    if (mostrarErrores && (tecnicoError != null)) {
                         Text(tecnicoError, color = MaterialTheme.colorScheme.error)
                     }
                 },
@@ -100,12 +96,12 @@ fun RegistroGeneralScreen(
             )
 
             OutlinedTextField(
-                value = form.tipoEquipo,
-                onValueChange = { onStateChange(validator.validate(form.copy(tipoEquipo = it))) },
+                value = state.tipoEquipo,
+                onValueChange = { onStateChange(state.copy(tipoEquipo = it)) },
                 label = { Text("Tipo de Equipo (ej. Transformador, Celda) *") },
-                isError = showErrors && (tipoEquipoError != null),
+                isError = mostrarErrores && (tipoEquipoError != null),
                 supportingText = {
-                    if (showErrors && (tipoEquipoError != null)) {
+                    if (mostrarErrores && (tipoEquipoError != null)) {
                         Text(tipoEquipoError, color = MaterialTheme.colorScheme.error)
                     }
                 },
@@ -116,12 +112,12 @@ fun RegistroGeneralScreen(
             )
 
             OutlinedTextField(
-                value = form.codigoEquipo,
-                onValueChange = { onStateChange(validator.validate(form.copy(codigoEquipo = it))) },
+                value = state.codigoEquipo,
+                onValueChange = { onStateChange(state.copy(codigoEquipo = it)) },
                 label = { Text("Código / ID / Tag del Equipo *") },
-                isError = showErrors && (codigoEquipoError != null),
+                isError = mostrarErrores && (codigoEquipoError != null),
                 supportingText = {
-                    if (showErrors && (codigoEquipoError != null)) {
+                    if (mostrarErrores && (codigoEquipoError != null)) {
                         Text(codigoEquipoError, color = MaterialTheme.colorScheme.error)
                     }
                 },
@@ -136,14 +132,7 @@ fun RegistroGeneralScreen(
             Text("Seleccione el Protocolo a Realizar:", style = MaterialTheme.typography.titleSmall)
 
             Button(
-                onClick = {
-                    showErrors = true
-                    val formValidated = validator.validate(form)
-                    onStateChange(formValidated)
-                    if (formValidated.errores.isValid) {
-                        onContinuarMantenimiento(formValidated)
-                    }
-                },
+                onClick = onContinuarMantenimiento,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -153,14 +142,7 @@ fun RegistroGeneralScreen(
             }
 
             Button(
-                onClick = {
-                    showErrors = true
-                    val formValidated = validator.validate(form)
-                    onStateChange(formValidated)
-                    if (formValidated.errores.isValid) {
-                        onContinuarPruebas(formValidated)
-                    }
-                },
+                onClick = onContinuarPruebas,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
