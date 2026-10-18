@@ -11,28 +11,34 @@ import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.DatosGeneralesForm
+import com.example.appnombre_grupo1.ui.components.SelectorDesplegable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistroGeneralScreen(
     state: DatosGeneralesForm,
+    clientes: List<Cliente>,
     mostrarErrores: Boolean,
     onStateChange: (DatosGeneralesForm) -> Unit,
+    onClienteChange: (String) -> Unit,
     onContinuarMantenimiento: () -> Unit,
     onContinuarPruebas: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
 
-    val clienteError = state.errores.cliente
-    val instalacionError = state.errores.instalacion
-    val tecnicoError = state.errores.tecnico
-    val tipoEquipoError = state.errores.tipoEquipo
-    val codigoEquipoError = state.errores.codigoEquipo
+    // Las instalaciones y equipos disponibles dependen del cliente elegido
+    val clienteSeleccionado = clientes.firstOrNull { it.nombre == state.cliente }
+
+    val clienteError = state.errores.cliente.takeIf { mostrarErrores }
+    val instalacionError = state.errores.instalacion.takeIf { mostrarErrores }
+    val tecnicoError = state.errores.tecnico.takeIf { mostrarErrores }
+    val tipoEquipoError = state.errores.tipoEquipo.takeIf { mostrarErrores }
+    val codigoEquipoError = state.errores.codigoEquipo.takeIf { mostrarErrores }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Nuevo Registro de Terreno") }) },
@@ -47,35 +53,23 @@ fun RegistroGeneralScreen(
         ) {
             Text("Datos del Cliente y Equipo", style = MaterialTheme.typography.titleMedium)
 
-            OutlinedTextField(
-                value = state.cliente,
-                onValueChange = { onStateChange(state.copy(cliente = it)) },
-                label = { Text("Cliente *") },
-                isError = mostrarErrores && (clienteError != null),
-                supportingText = {
-                    if (mostrarErrores && (clienteError != null)) {
-                        Text(clienteError, color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+            SelectorDesplegable(
+                etiqueta = "Cliente *",
+                seleccion = state.cliente,
+                opciones = clientes.map { it.nombre },
+                onSeleccionar = onClienteChange,
+                error = clienteError,
+                textoDeshabilitado = "No hay clientes registrados. Contacte al administrador",
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
-                value = state.instalacion,
-                onValueChange = { onStateChange(state.copy(instalacion = it)) },
-                label = { Text("Instalación / Subestación *") },
-                isError = mostrarErrores && (instalacionError != null),
-                supportingText = {
-                    if (mostrarErrores && (instalacionError != null)) {
-                        Text(instalacionError, color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+            SelectorDesplegable(
+                etiqueta = "Instalación / Subestación *",
+                seleccion = state.instalacion,
+                opciones = clienteSeleccionado?.instalaciones.orEmpty(),
+                onSeleccionar = { onStateChange(state.copy(instalacion = it)) },
+                error = instalacionError,
+                textoDeshabilitado = "Seleccione primero un cliente",
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -85,31 +79,19 @@ fun RegistroGeneralScreen(
                 // Se completa con el usuario que inició sesión y no se puede editar
                 readOnly = true,
                 label = { Text("Técnico / Ingeniero a cargo") },
-                isError = mostrarErrores && (tecnicoError != null),
-                supportingText = {
-                    if (mostrarErrores && (tecnicoError != null)) {
-                        Text(tecnicoError, color = MaterialTheme.colorScheme.error)
-                    } else {
-                        Text("Usuario con sesión iniciada")
-                    }
-                },
+                isError = tecnicoError != null,
+                supportingText = { Text(tecnicoError ?: "Usuario con sesión iniciada") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
-                value = state.tipoEquipo,
-                onValueChange = { onStateChange(state.copy(tipoEquipo = it)) },
-                label = { Text("Tipo de Equipo (ej. Transformador, Celda) *") },
-                isError = mostrarErrores && (tipoEquipoError != null),
-                supportingText = {
-                    if (mostrarErrores && (tipoEquipoError != null)) {
-                        Text(tipoEquipoError, color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+            SelectorDesplegable(
+                etiqueta = "Tipo de Equipo *",
+                seleccion = state.tipoEquipo,
+                opciones = clienteSeleccionado?.tiposEquipo.orEmpty(),
+                onSeleccionar = { onStateChange(state.copy(tipoEquipo = it)) },
+                error = tipoEquipoError,
+                textoDeshabilitado = "Seleccione primero un cliente",
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -117,11 +99,9 @@ fun RegistroGeneralScreen(
                 value = state.codigoEquipo,
                 onValueChange = { onStateChange(state.copy(codigoEquipo = it)) },
                 label = { Text("Código / ID / Tag del Equipo *") },
-                isError = mostrarErrores && (codigoEquipoError != null),
+                isError = codigoEquipoError != null,
                 supportingText = {
-                    if (mostrarErrores && (codigoEquipoError != null)) {
-                        Text(codigoEquipoError, color = MaterialTheme.colorScheme.error)
-                    }
+                    codigoEquipoError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),

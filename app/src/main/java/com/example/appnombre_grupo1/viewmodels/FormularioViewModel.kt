@@ -1,20 +1,29 @@
 package com.example.appnombre_grupo1.viewmodels
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import com.example.appnombre_grupo1.di.container
+import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.DatosGeneralesForm
 import com.example.appnombre_grupo1.model.MantenimientoState
 import com.example.appnombre_grupo1.model.PruebasElectricasState
-import com.example.appnombre_grupo1.model.repository.RegistroRepository
+import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.model.validation.DatosGeneralesValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-class FormularioViewModel(
-    private val repository: RegistroRepository = RegistroRepository(),
-    private val validator: DatosGeneralesValidator = DatosGeneralesValidator(),
-) : ViewModel() {
+class FormularioViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val registroRepository = container.registroRepository
+    private val validator = DatosGeneralesValidator()
+
+    // Opciones definidas por el administrador
+    val clientes: StateFlow<List<Cliente>> = container.clienteRepository.clientes
+
+    // Técnico que está llenando el registro actual
+    private var tecnico: Usuario? = null
 
     // Estado de cada formulario (sobrevive a la rotación de pantalla)
     private val _datosGenerales = MutableStateFlow(DatosGeneralesForm())
@@ -37,6 +46,13 @@ class FormularioViewModel(
         _pruebasElectricasState.update { it.copy(datosGenerales = validados) }
     }
 
+    // Al cambiar de cliente se limpian la instalación y el equipo, que dependen de él
+    fun seleccionarCliente(nombreCliente: String) {
+        val actual = _datosGenerales.value
+        if (actual.cliente == nombreCliente) return
+        actualizarDatosGenerales(actual.copy(cliente = nombreCliente, instalacion = "", tipoEquipo = ""))
+    }
+
     // Activa la visualización de errores y devuelve true si se puede continuar
     fun validarDatosGenerales(): Boolean {
         _mostrarErrores.value = true
@@ -53,16 +69,17 @@ class FormularioViewModel(
     }
 
     fun guardarMantenimiento() {
-        repository.guardarMantenimiento(_mantenimientoState.value)
+        tecnico?.let { registroRepository.guardarMantenimiento(_mantenimientoState.value, it) }
     }
 
     fun guardarPruebas() {
-        repository.guardarPruebas(_pruebasElectricasState.value)
+        tecnico?.let { registroRepository.guardarPruebas(_pruebasElectricasState.value, it) }
     }
 
     // Comienza un registro nuevo con el técnico que tiene la sesión iniciada
-    fun reiniciarRegistro(nombreTecnico: String) {
-        _datosGenerales.value = DatosGeneralesForm(tecnico = nombreTecnico)
+    fun reiniciarRegistro(usuario: Usuario) {
+        tecnico = usuario
+        _datosGenerales.value = DatosGeneralesForm(tecnico = usuario.nombre)
         _mostrarErrores.value = false
         _mantenimientoState.value = MantenimientoState(datosGenerales = _datosGenerales.value)
         _pruebasElectricasState.value = PruebasElectricasState(datosGenerales = _datosGenerales.value)

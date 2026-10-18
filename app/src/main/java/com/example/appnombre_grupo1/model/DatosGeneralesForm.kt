@@ -4,7 +4,7 @@ data class DatosGeneralesForm(
     val cliente: String = "",
     val instalacion: String = "",
     val tecnico: String = "",
-    val tipoEquipo: String = "Transformador",
+    val tipoEquipo: String = "",
     val codigoEquipo: String = "",
     val temperaturaAmbiente: String = "",
     val humedadRelativa: String = "",

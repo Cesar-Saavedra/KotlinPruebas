@@ -62,6 +62,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
 
+// Conversión de objetos a JSON para guardarlos en el teléfono
+    implementation(libs.gson)
+
 // Iconos extendidos de Material (opcional pero muy útil si te faltan iconos como Person)
     implementation("androidx.compose.material:material-icons-extended")
 }

@@ -14,6 +14,15 @@ sealed class Screen(val route: String) {
 
     data object Test : Screen("test_page")
 
+    // Pantallas del administrador
+    data object AdminHome : Screen("admin_home_page")
+    data object Clientes : Screen("clientes_page")
+    data object ClienteForm : Screen("cliente_form_page")
+    data object Usuarios : Screen("usuarios_page")
+    data object UsuarioForm : Screen("usuario_form_page")
+    data object Registros : Screen("registros_page")
+    data object RegistroDetalle : Screen("registro_detalle_page")
+
     // Ejemplo para pantallas que reciban parámetros (opcional)
     data class Detail(val itemId: String) : Screen("detail_page/{itemId}") {
         fun buildRoute(): String = route.replace("{itemId}", itemId)
