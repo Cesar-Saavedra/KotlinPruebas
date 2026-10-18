@@ -1,6 +1,7 @@
 package com.example.appnombre_grupo1.navigation
 
 sealed class Screen(val route: String) {
+    data object Login : Screen("login_page")
     data object Home : Screen("home_page")
     data object Profile : Screen("profile_page")
     data object Settings : Screen("settings_page")

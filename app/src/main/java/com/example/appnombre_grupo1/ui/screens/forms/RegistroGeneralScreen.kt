@@ -81,17 +81,19 @@ fun RegistroGeneralScreen(
 
             OutlinedTextField(
                 value = state.tecnico,
-                onValueChange = { onStateChange(state.copy(tecnico = it)) },
-                label = { Text("Técnico / Ingeniero a cargo *") },
+                onValueChange = {},
+                // Se completa con el usuario que inició sesión y no se puede editar
+                readOnly = true,
+                label = { Text("Técnico / Ingeniero a cargo") },
                 isError = mostrarErrores && (tecnicoError != null),
                 supportingText = {
                     if (mostrarErrores && (tecnicoError != null)) {
                         Text(tecnicoError, color = MaterialTheme.colorScheme.error)
+                    } else {
+                        Text("Usuario con sesión iniciada")
                     }
                 },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 modifier = Modifier.fillMaxWidth(),
             )
 

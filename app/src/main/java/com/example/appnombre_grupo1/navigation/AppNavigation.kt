@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -11,12 +12,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.appnombre_grupo1.ui.screens.HomeScreen
+import com.example.appnombre_grupo1.ui.screens.LoginScreen
 import com.example.appnombre_grupo1.ui.screens.ProfileScreen
 import com.example.appnombre_grupo1.ui.screens.SettingsScreen
 import com.example.appnombre_grupo1.ui.screens.forms.InicioRegistroScreen
 import com.example.appnombre_grupo1.ui.screens.forms.MantenimientoScreen
 import com.example.appnombre_grupo1.ui.screens.forms.PruebasElectricasScreen
 import com.example.appnombre_grupo1.ui.screens.forms.RegistroGeneralScreen
+import com.example.appnombre_grupo1.viewmodels.AuthViewModel
 import com.example.appnombre_grupo1.viewmodels.FormularioViewModel
 import com.example.appnombre_grupo1.viewmodels.MainViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -28,7 +31,15 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     mainViewModel: MainViewModel = viewModel(),
     formularioViewModel: FormularioViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel(),
 ) {
+    val usuarioActual by authViewModel.usuarioActual.collectAsState()
+
+    // Si ya había una sesión guardada en el teléfono, se salta el login
+    val startDestination = remember {
+        if (authViewModel.usuarioActual.value != null) Screen.Form.route else Screen.Login.route
+    }
+
     // Observa los eventos de navegación emitidos por el MainViewModel
     LaunchedEffect(navController) {
         mainViewModel.navigationEvents.collectLatest { event ->
@@ -52,15 +63,39 @@ fun AppNavigation(
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Form.route,
+        startDestination = startDestination,
         modifier = modifier,
     ) {
+        composable(Screen.Login.route) {
+            val loginForm by authViewModel.loginForm.collectAsState()
+
+            LoginScreen(
+                state = loginForm,
+                onUsernameChange = authViewModel::actualizarUsername,
+                onPasswordChange = authViewModel::actualizarPassword,
+                onLoginClick = {
+                    if (authViewModel.iniciarSesion()) {
+                        // Se quita el login del historial para que "atrás" no vuelva a él
+                        mainViewModel.navigateTo(Screen.Form, popUpToRoute = Screen.Login, inclusive = true)
+                    }
+                }
+            )
+        }
+
         // Flujo de registro de terreno
         composable(Screen.Form.route) {
+            // Tras cerrar sesión el usuario es null mientras se navega al login
+            val usuario = usuarioActual ?: return@composable
+
             InicioRegistroScreen(
+                usuario = usuario,
                 onNuevoRegistro = {
-                    formularioViewModel.reiniciarRegistro()
+                    formularioViewModel.reiniciarRegistro(usuario.nombre)
                     mainViewModel.navigateTo(Screen.GeneralForm)
+                },
+                onCerrarSesion = {
+                    authViewModel.cerrarSesion()
+                    mainViewModel.navigateTo(Screen.Login, popUpToRoute = Screen.Form, inclusive = true)
                 }
             )
         }

@@ -60,10 +60,11 @@ class FormularioViewModel(
         repository.guardarPruebas(_pruebasElectricasState.value)
     }
 
-    fun reiniciarRegistro() {
-        _datosGenerales.value = DatosGeneralesForm()
+    // Comienza un registro nuevo con el técnico que tiene la sesión iniciada
+    fun reiniciarRegistro(nombreTecnico: String) {
+        _datosGenerales.value = DatosGeneralesForm(tecnico = nombreTecnico)
         _mostrarErrores.value = false
-        _mantenimientoState.value = MantenimientoState()
-        _pruebasElectricasState.value = PruebasElectricasState()
+        _mantenimientoState.value = MantenimientoState(datosGenerales = _datosGenerales.value)
+        _pruebasElectricasState.value = PruebasElectricasState(datosGenerales = _datosGenerales.value)
     }
 }
