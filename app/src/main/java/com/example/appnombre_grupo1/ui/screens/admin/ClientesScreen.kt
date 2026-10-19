@@ -29,7 +29,7 @@ fun ClientesScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
                     }
-                }
+                },
             )
         },
         floatingActionButton = {
@@ -38,7 +38,7 @@ fun ClientesScreen(
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Nuevo cliente") },
             )
-        }
+        },
     ) { padding ->
         if (clientes.isEmpty()) {
             Box(

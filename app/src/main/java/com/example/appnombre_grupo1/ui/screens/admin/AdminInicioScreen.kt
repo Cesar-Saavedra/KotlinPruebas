@@ -17,6 +17,34 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.Usuario
 
+@Composable
+private fun OpcionAdmin(
+    icono: ImageVector,
+    titulo: String,
+    descripcion: String,
+    onClick: () -> Unit,
+) {
+    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icono, contentDescription = null, modifier = Modifier.size(32.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+            ) {
+                Text(titulo, style = MaterialTheme.typography.titleMedium)
+                Text(descripcion, style = MaterialTheme.typography.bodySmall)
+            }
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminInicioScreen(
@@ -34,9 +62,9 @@ fun AdminInicioScreen(
                     IconButton(onClick = onCerrarSesion) {
                         Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Cerrar sesión")
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -73,34 +101,6 @@ fun AdminInicioScreen(
                 descripcion = "Revisar los registros hechos por los técnicos",
                 onClick = onRegistrosClick,
             )
-        }
-    }
-}
-
-@Composable
-private fun OpcionAdmin(
-    icono: ImageVector,
-    titulo: String,
-    descripcion: String,
-    onClick: () -> Unit,
-) {
-    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icono, contentDescription = null, modifier = Modifier.size(32.dp))
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp)
-            ) {
-                Text(titulo, style = MaterialTheme.typography.titleMedium)
-                Text(descripcion, style = MaterialTheme.typography.bodySmall)
-            }
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
         }
     }
 }

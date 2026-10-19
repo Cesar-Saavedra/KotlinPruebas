@@ -18,6 +18,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+fun formatearFecha(millis: Long): String =
+    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(millis))
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrosScreen(
@@ -27,7 +30,7 @@ fun RegistrosScreen(
 ) {
     // Filtro por tipo de protocolo; null muestra todos
     var filtro by remember { mutableStateOf<TipoRegistro?>(null) }
-    val visibles = registros.filter { filtro == null || it.tipo == filtro }
+    val visibles = registros.filter { (filtro == null) || (it.tipo == filtro) }
 
     Scaffold(
         topBar = {
@@ -37,9 +40,9 @@ fun RegistrosScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -84,7 +87,7 @@ fun RegistrosScreen(
                                 supportingContent = {
                                     Text(
                                         "${registro.tipo.label} · ${datos.tipoEquipo} ${datos.codigoEquipo}\n" +
-                                            "${datos.tecnico} · ${formatearFecha(registro.fechaMillis)}"
+                                            "${datos.tecnico} · ${formatearFecha(registro.fechaMillis)}",
                                     )
                                 },
                                 leadingContent = {
@@ -105,6 +108,3 @@ fun RegistrosScreen(
         }
     }
 }
-
-fun formatearFecha(millis: Long): String =
-    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(millis))

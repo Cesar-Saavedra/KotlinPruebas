@@ -11,6 +11,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.RolUsuario
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.ui.screens.HomeScreen
@@ -106,7 +107,7 @@ fun AppNavigation(
                         // Se limpia el historial para que "atrás" no vuelva al login
                         mainViewModel.navigateTo(inicioSegunRol(usuario), limpiarHistorial = true)
                     }
-                }
+                },
             )
         }
 
@@ -121,7 +122,7 @@ fun AppNavigation(
                     formularioViewModel.reiniciarRegistro(usuario)
                     mainViewModel.navigateTo(Screen.GeneralForm)
                 },
-                onCerrarSesion = cerrarSesion
+                onCerrarSesion = cerrarSesion,
             )
         }
 
@@ -145,7 +146,7 @@ fun AppNavigation(
                     if (formularioViewModel.validarDatosGenerales()) {
                         mainViewModel.navigateTo(Screen.Test)
                     }
-                }
+                },
             )
         }
 
@@ -160,7 +161,7 @@ fun AppNavigation(
                     // Vuelve al inicio limpiando el historial del registro
                     mainViewModel.navigateTo(Screen.Form, popUpToRoute = Screen.Form, inclusive = true)
                 },
-                onBackClick = mainViewModel::navigateBack
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -174,7 +175,7 @@ fun AppNavigation(
                     formularioViewModel.guardarPruebas()
                     mainViewModel.navigateTo(Screen.Form, popUpToRoute = Screen.Form, inclusive = true)
                 },
-                onBackClick = mainViewModel::navigateBack
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -187,7 +188,7 @@ fun AppNavigation(
                 onClientesClick = { mainViewModel.navigateTo(Screen.Clientes) },
                 onUsuariosClick = { mainViewModel.navigateTo(Screen.Usuarios) },
                 onRegistrosClick = { mainViewModel.navigateTo(Screen.Registros) },
-                onCerrarSesion = cerrarSesion
+                onCerrarSesion = cerrarSesion,
             )
         }
 
@@ -196,7 +197,7 @@ fun AppNavigation(
 
             ClientesScreen(
                 clientes = clientes,
-                onClienteClick = { cliente ->
+                onClienteClick = { cliente: Cliente ->
                     clientesViewModel.editarCliente(cliente)
                     mainViewModel.navigateTo(Screen.ClienteForm)
                 },
@@ -204,7 +205,7 @@ fun AppNavigation(
                     clientesViewModel.nuevoCliente()
                     mainViewModel.navigateTo(Screen.ClienteForm)
                 },
-                onBackClick = mainViewModel::navigateBack
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -227,7 +228,7 @@ fun AppNavigation(
                     clientesViewModel.eliminar()
                     mainViewModel.navigateBack()
                 },
-                onBackClick = mainViewModel::navigateBack
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -245,7 +246,7 @@ fun AppNavigation(
                     usuariosViewModel.nuevoUsuario()
                     mainViewModel.navigateTo(Screen.UsuarioForm)
                 },
-                onBackClick = mainViewModel::navigateBack
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -265,7 +266,7 @@ fun AppNavigation(
                     usuariosViewModel.eliminar()
                     mainViewModel.navigateBack()
                 },
-                onBackClick = mainViewModel::navigateBack
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -278,7 +279,7 @@ fun AppNavigation(
                     registrosViewModel.seleccionar(registro)
                     mainViewModel.navigateTo(Screen.RegistroDetalle)
                 },
-                onBackClick = mainViewModel::navigateBack
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -288,7 +289,7 @@ fun AppNavigation(
             registro?.let {
                 RegistroDetalleScreen(
                     registro = it,
-                    onBackClick = mainViewModel::navigateBack
+                    onBackClick = mainViewModel::navigateBack,
                 )
             }
         }

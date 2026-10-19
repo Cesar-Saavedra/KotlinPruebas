@@ -32,7 +32,7 @@ fun UsuariosScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
                     }
-                }
+                },
             )
         },
         floatingActionButton = {
@@ -41,7 +41,7 @@ fun UsuariosScreen(
                 icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
                 text = { Text("Nuevo usuario") },
             )
-        }
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier

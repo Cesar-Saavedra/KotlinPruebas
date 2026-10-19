@@ -50,9 +50,9 @@ fun UsuarioFormScreen(
                             Icon(Icons.Default.Delete, contentDescription = "Eliminar usuario")
                         }
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -143,10 +143,12 @@ fun UsuarioFormScreen(
             title = { Text("Eliminar usuario") },
             text = { Text("¿Seguro que desea eliminar a ${state.nombre}? Ya no podrá iniciar sesión.") },
             confirmButton = {
-                TextButton(onClick = {
-                    confirmarEliminar = false
-                    onEliminarClick()
-                }) { Text("Eliminar") }
+                TextButton(
+                    onClick = {
+                        confirmarEliminar = false
+                        onEliminarClick()
+                    },
+                ) { Text("Eliminar") }
             },
             dismissButton = {
                 TextButton(onClick = { confirmarEliminar = false }) { Text("Cancelar") }

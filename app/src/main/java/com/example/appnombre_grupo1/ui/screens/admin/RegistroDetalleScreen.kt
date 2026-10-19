@@ -14,47 +14,32 @@ import com.example.appnombre_grupo1.model.MantenimientoState
 import com.example.appnombre_grupo1.model.PruebasElectricasState
 import com.example.appnombre_grupo1.model.RegistroGuardado
 
-@OptIn(ExperimentalMaterial3Api::class)
+private fun conUnidad(valor: String, unidad: String) = if (valor.isBlank()) "" else "$valor $unidad"
+
 @Composable
-fun RegistroDetalleScreen(
-    registro: RegistroGuardado,
-    onBackClick: () -> Unit,
-) {
-    val datos = registro.datosGenerales
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(registro.tipo.label) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
-                    }
-                }
-            )
-        }
-    ) { padding ->
+private fun Seccion(titulo: String, contenido: @Composable ColumnScope.() -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Seccion("Datos generales") {
-                Dato("Fecha", formatearFecha(registro.fechaMillis))
-                Dato("Técnico", "${datos.tecnico} (@${registro.tecnicoUsername})")
-                Dato("Cliente", datos.cliente)
-                Dato("Instalación", datos.instalacion)
-                Dato("Tipo de equipo", datos.tipoEquipo)
-                Dato("Código del equipo", datos.codigoEquipo)
-            }
-
-            registro.mantenimiento?.let { DetalleMantenimiento(it) }
-            registro.pruebas?.let { DetallePruebas(it) }
+            Text(titulo, style = MaterialTheme.typography.titleMedium)
+            contenido()
         }
     }
+}
+
+@Composable
+private fun Dato(etiqueta: String, valor: String) {
+    Column {
+        Text(etiqueta, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
+        Text(valor.ifBlank { "—" }, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun Componente(nombre: String, estado: EstadoComponente, descripcion: String) {
+    Dato(nombre, if (descripcion.isBlank()) estado.label else "${estado.label}: $descripcion")
 }
 
 @Composable
@@ -92,30 +77,45 @@ private fun DetallePruebas(estado: PruebasElectricasState) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Seccion(titulo: String, contenido: @Composable ColumnScope.() -> Unit) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+fun RegistroDetalleScreen(
+    registro: RegistroGuardado,
+    onBackClick: () -> Unit,
+) {
+    val datos = registro.datosGenerales
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(registro.tipo.label) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
+                    }
+                },
+            )
+        },
+    ) { padding ->
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(titulo, style = MaterialTheme.typography.titleMedium)
-            contenido()
+            Seccion("Datos generales") {
+                Dato("Fecha", formatearFecha(registro.fechaMillis))
+                Dato("Técnico", "${datos.tecnico} (@${registro.tecnicoUsername})")
+                Dato("Cliente", datos.cliente)
+                Dato("Instalación", datos.instalacion)
+                Dato("Tipo de equipo", datos.tipoEquipo)
+                Dato("Código del equipo", datos.codigoEquipo)
+            }
+
+            registro.mantenimiento?.let { DetalleMantenimiento(it) }
+            registro.pruebas?.let { DetallePruebas(it) }
         }
     }
 }
-
-@Composable
-private fun Dato(etiqueta: String, valor: String) {
-    Column {
-        Text(etiqueta, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
-        Text(valor.ifBlank { "—" }, style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-private fun Componente(nombre: String, estado: EstadoComponente, descripcion: String) {
-    Dato(nombre, if (descripcion.isBlank()) estado.label else "${estado.label}: $descripcion")
-}
-
-private fun conUnidad(valor: String, unidad: String) = if (valor.isBlank()) "" else "$valor $unidad"

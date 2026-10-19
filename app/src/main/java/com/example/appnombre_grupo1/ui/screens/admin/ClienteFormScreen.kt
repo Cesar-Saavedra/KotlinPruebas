@@ -18,6 +18,59 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.ClienteForm
 
+// Lista de textos con un campo para agregar nuevos y un botón para quitar cada uno
+@Composable
+private fun ListaEditable(
+    titulo: String,
+    elementos: List<String>,
+    nuevoTexto: String,
+    etiquetaNuevo: String,
+    onNuevoTextoChange: (String) -> Unit,
+    onAgregar: () -> Unit,
+    onQuitar: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(titulo, style = MaterialTheme.typography.titleMedium)
+
+        if (elementos.isEmpty()) {
+            Text(
+                "Sin elementos",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+
+        elementos.forEach { elemento ->
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(start = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(elemento, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { onQuitar(elemento) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Quitar $elemento")
+                    }
+                }
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = nuevoTexto,
+                onValueChange = onNuevoTextoChange,
+                label = { Text(etiquetaNuevo) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onAgregar() }),
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onAgregar, enabled = nuevoTexto.isNotBlank()) {
+                Icon(Icons.Default.Add, contentDescription = "Agregar")
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClienteFormScreen(
@@ -51,9 +104,9 @@ fun ClienteFormScreen(
                             Icon(Icons.Default.Delete, contentDescription = "Eliminar cliente")
                         }
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -112,67 +165,16 @@ fun ClienteFormScreen(
             title = { Text("Eliminar cliente") },
             text = { Text("¿Seguro que desea eliminar a ${state.nombre}? Los registros anteriores no se borran.") },
             confirmButton = {
-                TextButton(onClick = {
-                    confirmarEliminar = false
-                    onEliminarClick()
-                }) { Text("Eliminar") }
+                TextButton(
+                    onClick = {
+                        confirmarEliminar = false
+                        onEliminarClick()
+                    },
+                ) { Text("Eliminar") }
             },
             dismissButton = {
                 TextButton(onClick = { confirmarEliminar = false }) { Text("Cancelar") }
             },
         )
-    }
-}
-
-// Lista de textos con un campo para agregar nuevos y un botón para quitar cada uno
-@Composable
-private fun ListaEditable(
-    titulo: String,
-    elementos: List<String>,
-    nuevoTexto: String,
-    etiquetaNuevo: String,
-    onNuevoTextoChange: (String) -> Unit,
-    onAgregar: () -> Unit,
-    onQuitar: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(titulo, style = MaterialTheme.typography.titleMedium)
-
-        if (elementos.isEmpty()) {
-            Text(
-                "Sin elementos",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-        }
-
-        elementos.forEach { elemento ->
-            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(start = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(elemento, modifier = Modifier.weight(1f))
-                    IconButton(onClick = { onQuitar(elemento) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Quitar $elemento")
-                    }
-                }
-            }
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = nuevoTexto,
-                onValueChange = onNuevoTextoChange,
-                label = { Text(etiquetaNuevo) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onAgregar() }),
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = onAgregar, enabled = nuevoTexto.isNotBlank()) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar")
-            }
-        }
     }
 }
