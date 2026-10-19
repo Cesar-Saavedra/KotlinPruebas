@@ -26,13 +26,15 @@ fun RegistroGeneralScreen(
     mostrarErrores: Boolean,
     onStateChange: (DatosGeneralesForm) -> Unit,
     onClienteChange: (String) -> Unit,
+    onInstalacionChange: (String) -> Unit,
     onContinuarMantenimiento: () -> Unit,
     onContinuarPruebas: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
 
-    // Las instalaciones y equipos disponibles dependen del cliente elegido
+    // Las instalaciones dependen del cliente elegido y los equipos de la instalación elegida
     val clienteSeleccionado = clientes.firstOrNull { it.nombre == state.cliente }
+    val instalacionSeleccionada = clienteSeleccionado?.instalaciones?.firstOrNull { it.nombre == state.instalacion }
 
     val clienteError = state.errores.cliente.takeIf { mostrarErrores }
     val instalacionError = state.errores.instalacion.takeIf { mostrarErrores }
@@ -66,8 +68,8 @@ fun RegistroGeneralScreen(
             SelectorDesplegable(
                 etiqueta = "Instalación / Subestación *",
                 seleccion = state.instalacion,
-                opciones = clienteSeleccionado?.instalaciones.orEmpty(),
-                onSeleccionar = { onStateChange(state.copy(instalacion = it)) },
+                opciones = clienteSeleccionado?.instalaciones.orEmpty().map { it.nombre },
+                onSeleccionar = onInstalacionChange,
                 error = instalacionError,
                 textoDeshabilitado = "Seleccione primero un cliente",
                 modifier = Modifier.fillMaxWidth(),
@@ -88,10 +90,10 @@ fun RegistroGeneralScreen(
             SelectorDesplegable(
                 etiqueta = "Tipo de Equipo *",
                 seleccion = state.tipoEquipo,
-                opciones = clienteSeleccionado?.tiposEquipo.orEmpty(),
+                opciones = instalacionSeleccionada?.tiposEquipo.orEmpty(),
                 onSeleccionar = { onStateChange(state.copy(tipoEquipo = it)) },
                 error = tipoEquipoError,
-                textoDeshabilitado = "Seleccione primero un cliente",
+                textoDeshabilitado = "Seleccione primero una instalación",
                 modifier = Modifier.fillMaxWidth(),
             )
 

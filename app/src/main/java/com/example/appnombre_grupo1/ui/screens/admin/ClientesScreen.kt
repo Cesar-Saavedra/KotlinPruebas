@@ -62,7 +62,7 @@ fun ClientesScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(cliente.nombre, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "${cliente.instalaciones.size} instalaciones · ${cliente.tiposEquipo.size} tipos de equipo",
+                                "${cliente.instalaciones.size} instalaciones · ${cliente.instalaciones.sumOf { it.tiposEquipo.size }} equipos",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }

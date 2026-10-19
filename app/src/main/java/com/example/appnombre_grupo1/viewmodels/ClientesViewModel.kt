@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import com.example.appnombre_grupo1.di.container
 import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.ClienteForm
+import com.example.appnombre_grupo1.model.Instalacion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +30,6 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
             id = cliente.id,
             nombre = cliente.nombre,
             instalaciones = cliente.instalaciones,
-            tiposEquipo = cliente.tiposEquipo,
         )
     }
 
@@ -41,44 +41,75 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
         _form.update { it.copy(nuevaInstalacion = texto) }
     }
 
-    fun actualizarNuevoTipoEquipo(texto: String) {
-        _form.update { it.copy(nuevoTipoEquipo = texto) }
-    }
-
     fun agregarInstalacion() {
-        _form.update {
-            val nueva = it.nuevaInstalacion.trim()
-            if (nueva.isEmpty() || it.instalaciones.contiene(nueva)) it.copy(nuevaInstalacion = "")
-            else it.copy(instalaciones = it.instalaciones + nueva, nuevaInstalacion = "", error = null)
+        _form.update { form ->
+            val nueva = form.nuevaInstalacion.trim()
+            if (nueva.isEmpty() || form.instalaciones.any { it.nombre.equals(nueva, ignoreCase = true) }) {
+                form.copy(nuevaInstalacion = "")
+            } else {
+                form.copy(
+                    instalaciones = form.instalaciones + Instalacion(nombre = nueva),
+                    nuevaInstalacion = "",
+                    error = null,
+                )
+            }
         }
     }
 
     fun quitarInstalacion(instalacion: String) {
-        _form.update { it.copy(instalaciones = it.instalaciones - instalacion) }
-    }
-
-    fun agregarTipoEquipo() {
-        _form.update {
-            val nuevo = it.nuevoTipoEquipo.trim()
-            if (nuevo.isEmpty() || it.tiposEquipo.contiene(nuevo)) it.copy(nuevoTipoEquipo = "")
-            else it.copy(tiposEquipo = it.tiposEquipo + nuevo, nuevoTipoEquipo = "", error = null)
+        _form.update { form ->
+            form.copy(
+                instalaciones = form.instalaciones.filterNot { it.nombre == instalacion },
+                nuevoTipoEquipo = form.nuevoTipoEquipo - instalacion,
+            )
         }
     }
 
-    fun quitarTipoEquipo(tipo: String) {
-        _form.update { it.copy(tiposEquipo = it.tiposEquipo - tipo) }
+    fun actualizarNuevoTipoEquipo(instalacion: String, texto: String) {
+        _form.update { it.copy(nuevoTipoEquipo = it.nuevoTipoEquipo + (instalacion to texto)) }
+    }
+
+    fun agregarTipoEquipo(instalacion: String) {
+        _form.update { form ->
+            val nuevo = form.nuevoTipoEquipo[instalacion].orEmpty().trim()
+            val limpio = form.copy(nuevoTipoEquipo = form.nuevoTipoEquipo - instalacion)
+            if (nuevo.isEmpty()) return@update limpio
+
+            limpio.copy(
+                instalaciones = form.instalaciones.map { actual ->
+                    if (actual.nombre != instalacion || actual.tiposEquipo.any { it.equals(nuevo, ignoreCase = true) }) {
+                        actual
+                    } else {
+                        actual.copy(tiposEquipo = actual.tiposEquipo + nuevo)
+                    }
+                },
+                error = null,
+            )
+        }
+    }
+
+    fun quitarTipoEquipo(instalacion: String, tipo: String) {
+        _form.update { form ->
+            form.copy(
+                instalaciones = form.instalaciones.map {
+                    if (it.nombre == instalacion) it.copy(tiposEquipo = it.tiposEquipo - tipo) else it
+                },
+            )
+        }
     }
 
     // Devuelve true si el cliente se guardó correctamente
     fun guardar(): Boolean {
         val form = _form.value
         val nombre = form.nombre.trim()
+        val instalacionSinEquipos = form.instalaciones.firstOrNull { it.tiposEquipo.isEmpty() }
         val error = when {
             nombre.isEmpty() -> "Ingrese el nombre del cliente"
             clientes.value.any { it.id != form.id && it.nombre.equals(nombre, ignoreCase = true) } ->
                 "Ya existe un cliente con ese nombre"
             form.instalaciones.isEmpty() -> "Agregue al menos una instalación"
-            form.tiposEquipo.isEmpty() -> "Agregue al menos un tipo de equipo"
+            instalacionSinEquipos != null ->
+                "Agregue al menos un tipo de equipo a ${instalacionSinEquipos.nombre}"
             else -> null
         }
         if (error != null) {
@@ -91,8 +122,7 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
                 id = form.id.orEmpty(),
                 nombre = nombre,
                 instalaciones = form.instalaciones,
-                tiposEquipo = form.tiposEquipo,
-            )
+            ),
         )
         return true
     }
@@ -100,6 +130,4 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
     fun eliminar() {
         _form.value.id?.let { repository.eliminar(it) }
     }
-
-    private fun List<String>.contiene(valor: String) = any { it.equals(valor, ignoreCase = true) }
 }

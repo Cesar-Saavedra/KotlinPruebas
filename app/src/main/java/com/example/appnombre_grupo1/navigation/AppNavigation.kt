@@ -137,6 +137,7 @@ fun AppNavigation(
                 mostrarErrores = mostrarErrores,
                 onStateChange = formularioViewModel::actualizarDatosGenerales,
                 onClienteChange = formularioViewModel::seleccionarCliente,
+                onInstalacionChange = formularioViewModel::seleccionarInstalacion,
                 onContinuarMantenimiento = {
                     if (formularioViewModel.validarDatosGenerales()) {
                         mainViewModel.navigateTo(Screen.Maintenance)

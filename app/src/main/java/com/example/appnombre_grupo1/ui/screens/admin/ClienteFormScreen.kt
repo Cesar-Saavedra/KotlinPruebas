@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,56 +18,90 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.ClienteForm
+import com.example.appnombre_grupo1.model.Instalacion
 
-// Lista de textos con un campo para agregar nuevos y un botón para quitar cada uno
+// Campo de texto con un botón para agregar lo escrito
 @Composable
-private fun ListaEditable(
-    titulo: String,
-    elementos: List<String>,
-    nuevoTexto: String,
-    etiquetaNuevo: String,
-    onNuevoTextoChange: (String) -> Unit,
+private fun CampoAgregar(
+    texto: String,
+    etiqueta: String,
+    onTextoChange: (String) -> Unit,
     onAgregar: () -> Unit,
-    onQuitar: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(titulo, style = MaterialTheme.typography.titleMedium)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = texto,
+            onValueChange = onTextoChange,
+            label = { Text(etiqueta) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onAgregar() }),
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onAgregar, enabled = texto.isNotBlank()) {
+            Icon(Icons.Default.Add, contentDescription = "Agregar $etiqueta")
+        }
+    }
+}
 
-        if (elementos.isEmpty()) {
+// Tarjeta de una instalación con la lista de tipos de equipo vinculados a ella
+@Composable
+private fun TarjetaInstalacion(
+    instalacion: Instalacion,
+    nuevoTipoEquipo: String,
+    onNuevoTipoEquipoChange: (String) -> Unit,
+    onAgregarTipoEquipo: () -> Unit,
+    onQuitarTipoEquipo: (String) -> Unit,
+    onQuitarInstalacion: () -> Unit,
+) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocationOn, contentDescription = null)
+                Text(
+                    instalacion.nombre,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp),
+                )
+                IconButton(onClick = onQuitarInstalacion) {
+                    Icon(Icons.Default.Delete, contentDescription = "Quitar ${instalacion.nombre}")
+                }
+            }
+
             Text(
-                "Sin elementos",
-                style = MaterialTheme.typography.bodySmall,
+                "Tipos de equipo",
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.outline,
             )
-        }
 
-        elementos.forEach { elemento ->
-            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(start = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(elemento, modifier = Modifier.weight(1f))
-                    IconButton(onClick = { onQuitar(elemento) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Quitar $elemento")
+            if (instalacion.tiposEquipo.isEmpty()) {
+                Text(
+                    "Sin equipos. Agregue al menos uno",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            instalacion.tiposEquipo.forEach { tipo ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("• $tipo", modifier = Modifier.weight(1f))
+                    IconButton(onClick = { onQuitarTipoEquipo(tipo) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Quitar $tipo")
                     }
                 }
             }
-        }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = nuevoTexto,
-                onValueChange = onNuevoTextoChange,
-                label = { Text(etiquetaNuevo) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onAgregar() }),
-                modifier = Modifier.weight(1f),
+            CampoAgregar(
+                texto = nuevoTipoEquipo,
+                etiqueta = "Nuevo tipo de equipo",
+                onTextoChange = onNuevoTipoEquipoChange,
+                onAgregar = onAgregarTipoEquipo,
             )
-            IconButton(onClick = onAgregar, enabled = nuevoTexto.isNotBlank()) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar")
-            }
         }
     }
 }
@@ -79,9 +114,9 @@ fun ClienteFormScreen(
     onNuevaInstalacionChange: (String) -> Unit,
     onAgregarInstalacion: () -> Unit,
     onQuitarInstalacion: (String) -> Unit,
-    onNuevoTipoEquipoChange: (String) -> Unit,
-    onAgregarTipoEquipo: () -> Unit,
-    onQuitarTipoEquipo: (String) -> Unit,
+    onNuevoTipoEquipoChange: (instalacion: String, texto: String) -> Unit,
+    onAgregarTipoEquipo: (instalacion: String) -> Unit,
+    onQuitarTipoEquipo: (instalacion: String, tipo: String) -> Unit,
     onGuardarClick: () -> Unit,
     onEliminarClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -124,24 +159,32 @@ fun ClienteFormScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            ListaEditable(
-                titulo = "Instalaciones",
-                elementos = state.instalaciones,
-                nuevoTexto = state.nuevaInstalacion,
-                etiquetaNuevo = "Nueva instalación",
-                onNuevoTextoChange = onNuevaInstalacionChange,
-                onAgregar = onAgregarInstalacion,
-                onQuitar = onQuitarInstalacion,
-            )
+            Text("Instalaciones y sus equipos", style = MaterialTheme.typography.titleMedium)
 
-            ListaEditable(
-                titulo = "Tipos de equipo",
-                elementos = state.tiposEquipo,
-                nuevoTexto = state.nuevoTipoEquipo,
-                etiquetaNuevo = "Nuevo tipo de equipo",
-                onNuevoTextoChange = onNuevoTipoEquipoChange,
-                onAgregar = onAgregarTipoEquipo,
-                onQuitar = onQuitarTipoEquipo,
+            if (state.instalaciones.isEmpty()) {
+                Text(
+                    "Sin instalaciones",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+
+            state.instalaciones.forEach { instalacion ->
+                TarjetaInstalacion(
+                    instalacion = instalacion,
+                    nuevoTipoEquipo = state.nuevoTipoEquipo[instalacion.nombre].orEmpty(),
+                    onNuevoTipoEquipoChange = { onNuevoTipoEquipoChange(instalacion.nombre, it) },
+                    onAgregarTipoEquipo = { onAgregarTipoEquipo(instalacion.nombre) },
+                    onQuitarTipoEquipo = { onQuitarTipoEquipo(instalacion.nombre, it) },
+                    onQuitarInstalacion = { onQuitarInstalacion(instalacion.nombre) },
+                )
+            }
+
+            CampoAgregar(
+                texto = state.nuevaInstalacion,
+                etiqueta = "Nueva instalación",
+                onTextoChange = onNuevaInstalacionChange,
+                onAgregar = onAgregarInstalacion,
             )
 
             state.error?.let {

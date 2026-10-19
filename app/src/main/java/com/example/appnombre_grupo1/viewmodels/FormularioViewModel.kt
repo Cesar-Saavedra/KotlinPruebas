@@ -53,6 +53,13 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         actualizarDatosGenerales(actual.copy(cliente = nombreCliente, instalacion = "", tipoEquipo = ""))
     }
 
+    // Al cambiar de instalación se limpia el equipo, que depende de ella
+    fun seleccionarInstalacion(nombreInstalacion: String) {
+        val actual = _datosGenerales.value
+        if (actual.instalacion == nombreInstalacion) return
+        actualizarDatosGenerales(actual.copy(instalacion = nombreInstalacion, tipoEquipo = ""))
+    }
+
     // Activa la visualización de errores y devuelve true si se puede continuar
     fun validarDatosGenerales(): Boolean {
         _mostrarErrores.value = true
