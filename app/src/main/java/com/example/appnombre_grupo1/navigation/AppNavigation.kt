@@ -1,5 +1,6 @@
 package com.example.appnombre_grupo1.navigation
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,6 +53,7 @@ fun AppNavigation(
     clientesViewModel: ClientesViewModel = viewModel(),
     usuariosViewModel: UsuariosViewModel = viewModel(),
     registrosViewModel: RegistrosViewModel = viewModel(),
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val usuarioActual by authViewModel.usuarioActual.collectAsState()
 
@@ -82,6 +84,14 @@ fun AppNavigation(
                 is NavigationEvent.PopBackStack -> navController.popBackStack()
                 is NavigationEvent.NavigateUp -> navController.navigateUp()
             }
+        }
+    }
+
+    // Cuando termina de guardarse un registro: vuelve al inicio y muestra el mensaje
+    LaunchedEffect(Unit) {
+        formularioViewModel.registroGuardado.collect {
+            mainViewModel.navigateTo(Screen.Form, popUpToRoute = Screen.Form, inclusive = true)
+            snackbarHostState.showSnackbar("Registro guardado")
         }
     }
 
@@ -153,29 +163,26 @@ fun AppNavigation(
 
         composable(Screen.Maintenance.route) {
             val mantenimientoState by formularioViewModel.mantenimientoState.collectAsState()
+            val guardando by formularioViewModel.guardando.collectAsState()
 
             MantenimientoScreen(
                 state = mantenimientoState,
+                guardando = guardando,
                 onStateChange = formularioViewModel::actualizarMantenimiento,
-                onSaveClick = {
-                    formularioViewModel.guardarMantenimiento()
-                    // Vuelve al inicio limpiando el historial del registro
-                    mainViewModel.navigateTo(Screen.Form, popUpToRoute = Screen.Form, inclusive = true)
-                },
+                onSaveClick = formularioViewModel::guardarMantenimiento,
                 onBackClick = mainViewModel::navigateBack,
             )
         }
 
         composable(Screen.Test.route) {
             val pruebasState by formularioViewModel.pruebasElectricasState.collectAsState()
+            val guardando by formularioViewModel.guardando.collectAsState()
 
             PruebasElectricasScreen(
                 state = pruebasState,
+                guardando = guardando,
                 onStateChange = formularioViewModel::actualizarPruebas,
-                onSaveClick = {
-                    formularioViewModel.guardarPruebas()
-                    mainViewModel.navigateTo(Screen.Form, popUpToRoute = Screen.Form, inclusive = true)
-                },
+                onSaveClick = formularioViewModel::guardarPruebas,
                 onBackClick = mainViewModel::navigateBack,
             )
         }

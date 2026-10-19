@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.appnombre_grupo1.ui.components.CargandoOverlay
 import com.example.appnombre_grupo1.model.EstadoComponente
 import com.example.appnombre_grupo1.model.MantenimientoState
 
@@ -16,6 +17,7 @@ import com.example.appnombre_grupo1.model.MantenimientoState
 @Composable
 fun MantenimientoScreen(
     state: MantenimientoState,
+    guardando: Boolean,
     onStateChange: (MantenimientoState) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit
@@ -116,6 +118,7 @@ fun MantenimientoScreen(
 
             Button(
                 onClick = onSaveClick,
+                enabled = !guardando,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Guardar Mantenimiento")
@@ -128,6 +131,10 @@ fun MantenimientoScreen(
                 Text("Volver")
             }
         }
+    }
+
+    if (guardando) {
+        CargandoOverlay(mensaje = "Guardando mantenimiento...")
     }
 }
 

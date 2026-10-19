@@ -2,6 +2,7 @@ package com.example.appnombre_grupo1.viewmodels
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.appnombre_grupo1.di.container
 import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.DatosGeneralesForm
@@ -9,10 +10,15 @@ import com.example.appnombre_grupo1.model.MantenimientoState
 import com.example.appnombre_grupo1.model.PruebasElectricasState
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.model.validation.DatosGeneralesValidator
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class FormularioViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -38,6 +44,14 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
 
     private val _pruebasElectricasState = MutableStateFlow(PruebasElectricasState())
     val pruebasElectricasState: StateFlow<PruebasElectricasState> = _pruebasElectricasState.asStateFlow()
+
+    // true mientras se está guardando un registro (muestra el círculo de carga)
+    private val _guardando = MutableStateFlow(false)
+    val guardando: StateFlow<Boolean> = _guardando.asStateFlow()
+
+    // Evento que se emite una vez cuando el registro terminó de guardarse
+    private val _registroGuardado = MutableSharedFlow<Unit>()
+    val registroGuardado: SharedFlow<Unit> = _registroGuardado.asSharedFlow()
 
     fun actualizarDatosGenerales(nuevosDatos: DatosGeneralesForm) {
         val validados = validator.validate(nuevosDatos)
@@ -75,12 +89,27 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         _pruebasElectricasState.value = nuevoEstado
     }
 
-    fun guardarMantenimiento() {
-        tecnico?.let { registroRepository.guardarMantenimiento(_mantenimientoState.value, it) }
+    fun guardarMantenimiento() = guardar { tecnico ->
+        registroRepository.guardarMantenimiento(_mantenimientoState.value, tecnico)
     }
 
-    fun guardarPruebas() {
-        tecnico?.let { registroRepository.guardarPruebas(_pruebasElectricasState.value, it) }
+    fun guardarPruebas() = guardar { tecnico ->
+        registroRepository.guardarPruebas(_pruebasElectricasState.value, tecnico)
+    }
+
+    // Guarda en una corrutina mostrando la carga y avisa a la vista cuando termina
+    private fun guardar(accion: (Usuario) -> Unit) {
+        val tecnicoActual = tecnico ?: return
+        if (_guardando.value) return
+
+        viewModelScope.launch {
+            _guardando.value = true
+            // Simula el tiempo que tomaría enviar el registro a un servidor
+            delay(TIEMPO_GUARDADO_MS)
+            accion(tecnicoActual)
+            _guardando.value = false
+            _registroGuardado.emit(Unit)
+        }
     }
 
     // Comienza un registro nuevo con el técnico que tiene la sesión iniciada
@@ -90,5 +119,9 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         _mostrarErrores.value = false
         _mantenimientoState.value = MantenimientoState(datosGenerales = _datosGenerales.value)
         _pruebasElectricasState.value = PruebasElectricasState(datosGenerales = _datosGenerales.value)
+    }
+
+    private companion object {
+        const val TIEMPO_GUARDADO_MS = 3_000L
     }
 }

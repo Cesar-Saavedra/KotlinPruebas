@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.appnombre_grupo1.ui.components.CargandoOverlay
 import com.example.appnombre_grupo1.model.PruebasElectricasState
 import com.example.appnombre_grupo1.model.VeredictoPrueba
 
@@ -22,6 +23,7 @@ import com.example.appnombre_grupo1.model.VeredictoPrueba
 @Composable
 fun PruebasElectricasScreen(
     state: PruebasElectricasState,
+    guardando: Boolean,
     onStateChange: (PruebasElectricasState) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -141,6 +143,7 @@ fun PruebasElectricasScreen(
             // Botón de guardado
             Button(
                 onClick = onSaveClick,
+                enabled = !guardando,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Guardar Protocolo de Prueba")
@@ -154,5 +157,9 @@ fun PruebasElectricasScreen(
                 Text("Volver al Menú Principal")
             }
         }
+    }
+
+    if (guardando) {
+        CargandoOverlay(mensaje = "Guardando prueba...")
     }
 }
