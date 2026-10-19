@@ -1,4 +1,4 @@
-package com.example.appnombre_grupo1.ui.screens.admin
+package com.example.appnombre_grupo1.ui.screens.registros
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,12 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.RegistroGuardado
 import com.example.appnombre_grupo1.model.TipoRegistro
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-fun formatearFecha(millis: Long): String =
-    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(millis))
+import com.example.appnombre_grupo1.ui.utils.formatearFecha
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

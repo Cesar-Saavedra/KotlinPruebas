@@ -3,6 +3,7 @@ package com.example.appnombre_grupo1.ui.screens.forms
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,6 +16,7 @@ import com.example.appnombre_grupo1.model.Usuario
 fun InicioRegistroScreen(
     usuario: Usuario,
     onNuevoRegistro: () -> Unit,
+    onRegistrosAnteriores: () -> Unit,
     onCerrarSesion: () -> Unit,
 ) {
     Scaffold(
@@ -52,6 +54,18 @@ fun InicioRegistroScreen(
                     .height(56.dp)
             ) {
                 Text("Nuevo Registro", style = MaterialTheme.typography.titleMedium)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onRegistrosAnteriores,
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(56.dp)
+            ) {
+                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Registros anteriores", style = MaterialTheme.typography.titleMedium)
             }
         }
     }

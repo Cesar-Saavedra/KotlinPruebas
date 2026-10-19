@@ -1,4 +1,4 @@
-package com.example.appnombre_grupo1.ui.screens.admin
+package com.example.appnombre_grupo1.ui.screens.registros
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,11 +8,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.EstadoComponente
 import com.example.appnombre_grupo1.model.MantenimientoState
 import com.example.appnombre_grupo1.model.PruebasElectricasState
 import com.example.appnombre_grupo1.model.RegistroGuardado
+import com.example.appnombre_grupo1.ui.components.FotoArchivo
+import com.example.appnombre_grupo1.ui.utils.formatearFecha
 
 private fun conUnidad(valor: String, unidad: String) = if (valor.isBlank()) "" else "$valor $unidad"
 
@@ -56,6 +59,19 @@ private fun DetalleMantenimiento(estado: MantenimientoState) {
 
     Seccion("Observaciones") {
         Text(estado.observaciones.ifBlank { "Sin observaciones" })
+    }
+
+    estado.fotoPath?.let { foto ->
+        Seccion("Fotografía") {
+            FotoArchivo(
+                path = foto,
+                contentDescription = "Foto del mantenimiento",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .clip(MaterialTheme.shapes.medium),
+            )
+        }
     }
 }
 

@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.appnombre_grupo1.model.Cliente
+import com.example.appnombre_grupo1.model.RegistroGuardado
 import com.example.appnombre_grupo1.model.RolUsuario
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.ui.screens.HomeScreen
@@ -22,14 +23,14 @@ import com.example.appnombre_grupo1.ui.screens.SettingsScreen
 import com.example.appnombre_grupo1.ui.screens.admin.AdminInicioScreen
 import com.example.appnombre_grupo1.ui.screens.admin.ClienteFormScreen
 import com.example.appnombre_grupo1.ui.screens.admin.ClientesScreen
-import com.example.appnombre_grupo1.ui.screens.admin.RegistroDetalleScreen
-import com.example.appnombre_grupo1.ui.screens.admin.RegistrosScreen
 import com.example.appnombre_grupo1.ui.screens.admin.UsuarioFormScreen
 import com.example.appnombre_grupo1.ui.screens.admin.UsuariosScreen
 import com.example.appnombre_grupo1.ui.screens.forms.InicioRegistroScreen
 import com.example.appnombre_grupo1.ui.screens.forms.MantenimientoScreen
 import com.example.appnombre_grupo1.ui.screens.forms.PruebasElectricasScreen
 import com.example.appnombre_grupo1.ui.screens.forms.RegistroGeneralScreen
+import com.example.appnombre_grupo1.ui.screens.registros.RegistroDetalleScreen
+import com.example.appnombre_grupo1.ui.screens.registros.RegistrosScreen
 import com.example.appnombre_grupo1.viewmodels.AuthViewModel
 import com.example.appnombre_grupo1.viewmodels.ClientesViewModel
 import com.example.appnombre_grupo1.viewmodels.FormularioViewModel
@@ -95,6 +96,12 @@ fun AppNavigation(
         }
     }
 
+    // Abre el detalle de un registro guardado (lo usan el administrador y el técnico)
+    val verRegistro: (RegistroGuardado) -> Unit = { registro ->
+        registrosViewModel.seleccionar(registro)
+        mainViewModel.navigateTo(Screen.RegistroDetalle)
+    }
+
     val cerrarSesion = {
         authViewModel.cerrarSesion()
         mainViewModel.navigateTo(Screen.Login, limpiarHistorial = true)
@@ -132,6 +139,7 @@ fun AppNavigation(
                     formularioViewModel.reiniciarRegistro(usuario)
                     mainViewModel.navigateTo(Screen.GeneralForm)
                 },
+                onRegistrosAnteriores = { mainViewModel.navigateTo(Screen.Registros) },
                 onCerrarSesion = cerrarSesion,
             )
         }
@@ -164,11 +172,20 @@ fun AppNavigation(
         composable(Screen.Maintenance.route) {
             val mantenimientoState by formularioViewModel.mantenimientoState.collectAsState()
             val guardando by formularioViewModel.guardando.collectAsState()
+            val registroAnterior by formularioViewModel.mantenimientoAnterior.collectAsState()
+            val procesandoFoto by formularioViewModel.procesandoFoto.collectAsState()
 
             MantenimientoScreen(
                 state = mantenimientoState,
                 guardando = guardando,
+                registroAnterior = registroAnterior,
+                procesandoFoto = procesandoFoto,
                 onStateChange = formularioViewModel::actualizarMantenimiento,
+                onVerRegistroAnterior = verRegistro,
+                onPrepararCamara = formularioViewModel::prepararFotoCamara,
+                onResultadoCamara = formularioViewModel::resultadoCamara,
+                onFotoGaleria = formularioViewModel::fotoDeGaleria,
+                onQuitarFoto = formularioViewModel::quitarFoto,
                 onSaveClick = formularioViewModel::guardarMantenimiento,
                 onBackClick = mainViewModel::navigateBack,
             )
@@ -177,11 +194,14 @@ fun AppNavigation(
         composable(Screen.Test.route) {
             val pruebasState by formularioViewModel.pruebasElectricasState.collectAsState()
             val guardando by formularioViewModel.guardando.collectAsState()
+            val registroAnterior by formularioViewModel.pruebaAnterior.collectAsState()
 
             PruebasElectricasScreen(
                 state = pruebasState,
                 guardando = guardando,
+                registroAnterior = registroAnterior,
                 onStateChange = formularioViewModel::actualizarPruebas,
+                onVerRegistroAnterior = verRegistro,
                 onSaveClick = formularioViewModel::guardarPruebas,
                 onBackClick = mainViewModel::navigateBack,
             )
@@ -283,10 +303,7 @@ fun AppNavigation(
 
             RegistrosScreen(
                 registros = registros,
-                onRegistroClick = { registro ->
-                    registrosViewModel.seleccionar(registro)
-                    mainViewModel.navigateTo(Screen.RegistroDetalle)
-                },
+                onRegistroClick = verRegistro,
                 onBackClick = mainViewModel::navigateBack,
             )
         }

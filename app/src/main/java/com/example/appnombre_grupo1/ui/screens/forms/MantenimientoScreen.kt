@@ -9,7 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.net.Uri
+import com.example.appnombre_grupo1.model.RegistroGuardado
 import com.example.appnombre_grupo1.ui.components.CargandoOverlay
+import com.example.appnombre_grupo1.ui.components.SelectorFoto
+import com.example.appnombre_grupo1.ui.components.TarjetaRegistroAnterior
 import com.example.appnombre_grupo1.model.EstadoComponente
 import com.example.appnombre_grupo1.model.MantenimientoState
 
@@ -18,7 +22,14 @@ import com.example.appnombre_grupo1.model.MantenimientoState
 fun MantenimientoScreen(
     state: MantenimientoState,
     guardando: Boolean,
+    registroAnterior: RegistroGuardado?,
+    procesandoFoto: Boolean,
     onStateChange: (MantenimientoState) -> Unit,
+    onVerRegistroAnterior: (RegistroGuardado) -> Unit,
+    onPrepararCamara: () -> Uri,
+    onResultadoCamara: (Boolean) -> Unit,
+    onFotoGaleria: (Uri) -> Unit,
+    onQuitarFoto: () -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
@@ -42,6 +53,11 @@ fun MantenimientoScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            TarjetaRegistroAnterior(
+                registro = registroAnterior,
+                onVerClick = onVerRegistroAnterior,
+            )
+
             Text("Inspección de Componentes", style = MaterialTheme.typography.titleMedium)
 
             // 1. Estado Físico Exterior
@@ -116,9 +132,19 @@ fun MantenimientoScreen(
                 minLines = 3
             )
 
+            Text("Fotografía", style = MaterialTheme.typography.titleMedium)
+            SelectorFoto(
+                fotoPath = state.fotoPath,
+                procesando = procesandoFoto,
+                onPrepararCamara = onPrepararCamara,
+                onResultadoCamara = onResultadoCamara,
+                onFotoGaleria = onFotoGaleria,
+                onQuitarFoto = onQuitarFoto,
+            )
+
             Button(
                 onClick = onSaveClick,
-                enabled = !guardando,
+                enabled = !guardando && !procesandoFoto,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Guardar Mantenimiento")
