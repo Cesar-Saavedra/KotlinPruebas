@@ -1,11 +1,15 @@
 package com.example.appnombre_grupo1.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -57,10 +61,19 @@ fun AppNavigation(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val usuarioActual by authViewModel.usuarioActual.collectAsState()
+    val sesion by authViewModel.sesion.collectAsState()
+
+    // Mientras se lee la base de datos al abrir la app se muestra un círculo de carga
+    val sesionLeida = sesion ?: run {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     // Si ya había una sesión guardada en el teléfono, se salta el login
     val startDestination = remember {
-        authViewModel.usuarioActual.value?.let { inicioSegunRol(it).route } ?: Screen.Login.route
+        sesionLeida.usuario?.let { inicioSegunRol(it).route } ?: Screen.Login.route
     }
 
     // Observa los eventos de navegación emitidos por el MainViewModel
@@ -85,6 +98,14 @@ fun AppNavigation(
                 is NavigationEvent.PopBackStack -> navController.popBackStack()
                 is NavigationEvent.NavigateUp -> navController.navigateUp()
             }
+        }
+    }
+
+    // Cuando el inicio de sesión es correcto se va al inicio que corresponde al rol.
+    // Se limpia el historial para que "atrás" no vuelva al login.
+    LaunchedEffect(Unit) {
+        authViewModel.inicioSesion.collect { usuario ->
+            mainViewModel.navigateTo(inicioSegunRol(usuario), limpiarHistorial = true)
         }
     }
 
@@ -119,12 +140,7 @@ fun AppNavigation(
                 state = loginForm,
                 onUsernameChange = authViewModel::actualizarUsername,
                 onPasswordChange = authViewModel::actualizarPassword,
-                onLoginClick = {
-                    authViewModel.iniciarSesion()?.let { usuario ->
-                        // Se limpia el historial para que "atrás" no vuelva al login
-                        mainViewModel.navigateTo(inicioSegunRol(usuario), limpiarHistorial = true)
-                    }
-                },
+                onLoginClick = authViewModel::iniciarSesion,
             )
         }
 

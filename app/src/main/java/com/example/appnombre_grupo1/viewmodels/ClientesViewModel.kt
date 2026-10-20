@@ -2,20 +2,26 @@ package com.example.appnombre_grupo1.viewmodels
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.appnombre_grupo1.di.container
 import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.ClienteForm
 import com.example.appnombre_grupo1.model.Instalacion
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class ClientesViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = container.clienteRepository
 
-    val clientes: StateFlow<List<Cliente>> = repository.clientes
+    // Lista que se actualiza sola cada vez que cambia la base de datos
+    val clientes: StateFlow<List<Cliente>> =
+        repository.clientes.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _form = MutableStateFlow(ClienteForm())
     val form: StateFlow<ClienteForm> = _form.asStateFlow()
@@ -117,17 +123,21 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
             return false
         }
 
-        repository.guardar(
-            Cliente(
-                id = form.id.orEmpty(),
-                nombre = nombre,
-                instalaciones = form.instalaciones,
-            ),
-        )
+        // Room no permite escribir en el hilo principal: se guarda en una corrutina
+        viewModelScope.launch {
+            repository.guardar(
+                Cliente(
+                    id = form.id.orEmpty(),
+                    nombre = nombre,
+                    instalaciones = form.instalaciones,
+                ),
+            )
+        }
         return true
     }
 
     fun eliminar() {
-        _form.value.id?.let { repository.eliminar(it) }
+        val id = _form.value.id ?: return
+        viewModelScope.launch { repository.eliminar(id) }
     }
 }

@@ -34,7 +34,8 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
     private val validator = DatosGeneralesValidator()
 
     // Opciones definidas por el administrador
-    val clientes: StateFlow<List<Cliente>> = container.clienteRepository.clientes
+    val clientes: StateFlow<List<Cliente>> =
+        container.clienteRepository.clientes.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // Técnico que está llenando el registro actual
     private var tecnico: Usuario? = null
@@ -117,7 +118,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     // Guarda en una corrutina mostrando la carga y avisa a la vista cuando termina
-    private fun guardar(accion: (Usuario) -> Unit) {
+    private fun guardar(accion: suspend (Usuario) -> Unit) {
         val tecnicoActual = tecnico ?: return
         if (_guardando.value) return
 
@@ -183,8 +184,8 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
     fun reiniciarRegistro(usuario: Usuario) {
         // Borra la foto del registro anterior si nunca llegó a guardarse
         _mantenimientoState.value.fotoPath?.let { foto ->
-            if (registroRepository.registros.value.none { it.mantenimiento?.fotoPath == foto }) {
-                fotoRepository.eliminar(foto)
+            viewModelScope.launch {
+                if (!registroRepository.fotoEnUso(foto)) fotoRepository.eliminar(foto)
             }
         }
         tecnico = usuario

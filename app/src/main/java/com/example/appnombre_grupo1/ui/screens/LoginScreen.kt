@@ -96,11 +96,16 @@ fun LoginScreen(
                     focusManager.clearFocus()
                     onLoginClick()
                 },
+                enabled = !state.verificando,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
             ) {
-                Text("Iniciar Sesión", style = MaterialTheme.typography.titleMedium)
+                if (state.verificando) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Iniciar Sesión", style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
     }

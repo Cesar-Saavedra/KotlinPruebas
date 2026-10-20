@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    // KSP genera el código de Room (DAOs y base de datos) al compilar
+    alias(libs.plugins.ksp)
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
@@ -64,6 +66,11 @@ dependencies {
 
 // Conversión de objetos a JSON para guardarlos en el teléfono
     implementation(libs.gson)
+
+// Base de datos SQLite con Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
 // Iconos extendidos de Material (opcional pero muy útil si te faltan iconos como Person)
     implementation("androidx.compose.material:material-icons-extended")

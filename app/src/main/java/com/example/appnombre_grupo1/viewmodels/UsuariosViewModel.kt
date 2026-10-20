@@ -2,20 +2,26 @@ package com.example.appnombre_grupo1.viewmodels
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.appnombre_grupo1.di.container
 import com.example.appnombre_grupo1.model.RolUsuario
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.model.UsuarioForm
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class UsuariosViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = container.usuarioRepository
 
-    val usuarios: StateFlow<List<Usuario>> = repository.usuarios
+    // Lista que se actualiza sola cada vez que cambia la base de datos
+    val usuarios: StateFlow<List<Usuario>> =
+        repository.usuarios.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _form = MutableStateFlow(UsuarioForm())
     val form: StateFlow<UsuarioForm> = _form.asStateFlow()
@@ -56,7 +62,7 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
         val form = _form.value
         val error = when {
             form.username.isBlank() -> "Ingrese el nombre de usuario"
-            form.esNuevo && repository.existe(form.username) -> "Ese nombre de usuario ya existe"
+            form.esNuevo && usuarios.value.any { it.username == form.username } -> "Ese nombre de usuario ya existe"
             form.nombre.isBlank() -> "Ingrese el nombre completo"
             form.esNuevo && form.password.length < 4 -> "La contraseña debe tener al menos 4 caracteres"
             !form.esNuevo && form.password.isNotEmpty() && form.password.length < 4 ->
@@ -68,10 +74,12 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
             return false
         }
 
-        repository.guardarUsuario(
-            Usuario(username = form.username, nombre = form.nombre.trim(), rol = form.rol),
-            password = form.password.ifEmpty { null },
-        )
+        viewModelScope.launch {
+            repository.guardarUsuario(
+                Usuario(username = form.username, nombre = form.nombre.trim(), rol = form.rol),
+                password = form.password.ifEmpty { null },
+            )
+        }
         return true
     }
 
@@ -79,7 +87,7 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
     fun eliminar() {
         val form = _form.value
         if (!form.esNuevo && !form.esUsuarioActual) {
-            repository.eliminarUsuario(form.username)
+            viewModelScope.launch { repository.eliminarUsuario(form.username) }
         }
     }
 }
