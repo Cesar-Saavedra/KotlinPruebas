@@ -9,20 +9,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.net.Uri
+import com.example.appnombre_grupo1.model.RegistroGuardado
+import com.example.appnombre_grupo1.ui.components.CargandoOverlay
+import com.example.appnombre_grupo1.ui.components.SelectorFoto
+import com.example.appnombre_grupo1.ui.components.TarjetaRegistroAnterior
 import com.example.appnombre_grupo1.model.EstadoComponente
 import com.example.appnombre_grupo1.model.MantenimientoState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MantenimientoScreen(
-    initialState: MantenimientoState,
+    state: MantenimientoState,
+    guardando: Boolean,
+    registroAnterior: RegistroGuardado?,
+    procesandoFoto: Boolean,
     onStateChange: (MantenimientoState) -> Unit,
-    onSaveClick: (MantenimientoState) -> Unit,
+    onVerRegistroAnterior: (RegistroGuardado) -> Unit,
+    onPrepararCamara: () -> Uri,
+    onResultadoCamara: (Boolean) -> Unit,
+    onFotoGaleria: (Uri) -> Unit,
+    onQuitarFoto: () -> Unit,
+    onSaveClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    // Usamos el estado que proviene directamente del ViewModel
-    val state = initialState
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -43,6 +53,11 @@ fun MantenimientoScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            TarjetaRegistroAnterior(
+                registro = registroAnterior,
+                onVerClick = onVerRegistroAnterior,
+            )
+
             Text("Inspección de Componentes", style = MaterialTheme.typography.titleMedium)
 
             // 1. Estado Físico Exterior
@@ -50,8 +65,8 @@ fun MantenimientoScreen(
                 titulo = "Estado Físico Exterior",
                 estado = state.estadoFisicoExterior,
                 descripcion = state.descripcionFisicoExterior,
-                onEstadoChange = { onStateChange (state.copy(estadoFisicoExterior = it)) },
-                onDescripcionChange = { onStateChange (state.copy(descripcionFisicoExterior = it)) }
+                onEstadoChange = { onStateChange(state.copy(estadoFisicoExterior = it)) },
+                onDescripcionChange = { onStateChange(state.copy(descripcionFisicoExterior = it)) }
             )
 
             // 2. Estado de Aisladores
@@ -59,8 +74,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de Aisladores / Bushing",
                 estado = state.estadoAisladores,
                 descripcion = state.descripcionAisladores,
-                onEstadoChange = { onStateChange (state.copy(estadoAisladores = it)) },
-                onDescripcionChange = { onStateChange (state.copy(descripcionAisladores = it)) }
+                onEstadoChange = { onStateChange(state.copy(estadoAisladores = it)) },
+                onDescripcionChange = { onStateChange(state.copy(descripcionAisladores = it)) }
             )
 
             // 3. Estado de Regletas
@@ -68,8 +83,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de las Regletas",
                 estado = state.estadoRegletas,
                 descripcion = state.descripcionRegletas,
-                onEstadoChange = { onStateChange (state.copy(estadoRegletas = it)) },
-                onDescripcionChange = { onStateChange (state.copy(descripcionRegletas = it)) }
+                onEstadoChange = { onStateChange(state.copy(estadoRegletas = it)) },
+                onDescripcionChange = { onStateChange(state.copy(descripcionRegletas = it)) }
             )
 
             // 4. Estado de Contactores
@@ -77,8 +92,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de los Contactores",
                 estado = state.estadoContactores,
                 descripcion = state.descripcionContactores,
-                onEstadoChange = { onStateChange ( state.copy(estadoContactores = it)) },
-                onDescripcionChange = { onStateChange ( state.copy(descripcionContactores = it)) }
+                onEstadoChange = { onStateChange(state.copy(estadoContactores = it)) },
+                onDescripcionChange = { onStateChange(state.copy(descripcionContactores = it)) }
             )
 
             // 5. Estado de Cables
@@ -86,8 +101,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de los Cables",
                 estado = state.estadoCables,
                 descripcion = state.descripcionCables,
-                onEstadoChange = { onStateChange ( state.copy(estadoCables = it)) },
-                onDescripcionChange = { onStateChange ( state.copy(descripcionCables = it)) }
+                onEstadoChange = { onStateChange(state.copy(estadoCables = it)) },
+                onDescripcionChange = { onStateChange(state.copy(descripcionCables = it)) }
             )
 
             // 6. Estado de Luces Piloto
@@ -95,8 +110,8 @@ fun MantenimientoScreen(
                 titulo = "Estado de Luces Piloto",
                 estado = state.estadoLucesPiloto,
                 descripcion = state.descripcionLucesPiloto,
-                onEstadoChange = { onStateChange ( state.copy(estadoLucesPiloto = it)) },
-                onDescripcionChange = { onStateChange ( state.copy(descripcionLucesPiloto = it)) }
+                onEstadoChange = { onStateChange(state.copy(estadoLucesPiloto = it)) },
+                onDescripcionChange = { onStateChange(state.copy(descripcionLucesPiloto = it)) }
             )
 
             // 7. Estado de Canaletas
@@ -104,21 +119,32 @@ fun MantenimientoScreen(
                 titulo = "Estado de Canaletas",
                 estado = state.estadoCanaletas,
                 descripcion = state.descripcionCanaletas,
-                onEstadoChange = { onStateChange ( state.copy(estadoCanaletas = it)) },
-                onDescripcionChange = { onStateChange ( state.copy(descripcionCanaletas = it)) }
+                onEstadoChange = { onStateChange(state.copy(estadoCanaletas = it)) },
+                onDescripcionChange = { onStateChange(state.copy(descripcionCanaletas = it)) }
             )
 
             Text("Observaciones Generales", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = state.observaciones,
-                onValueChange = { onStateChange ( state.copy(observaciones = it)) },
+                onValueChange = { onStateChange(state.copy(observaciones = it)) },
                 label = { Text("Detalles adicionales de la visita") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
 
+            Text("Fotografía", style = MaterialTheme.typography.titleMedium)
+            SelectorFoto(
+                fotoPath = state.fotoPath,
+                procesando = procesandoFoto,
+                onPrepararCamara = onPrepararCamara,
+                onResultadoCamara = onResultadoCamara,
+                onFotoGaleria = onFotoGaleria,
+                onQuitarFoto = onQuitarFoto,
+            )
+
             Button(
-                onClick = { onSaveClick(state) },
+                onClick = onSaveClick,
+                enabled = !guardando && !procesandoFoto,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Guardar Mantenimiento")
@@ -131,6 +157,10 @@ fun MantenimientoScreen(
                 Text("Volver")
             }
         }
+    }
+
+    if (guardando) {
+        CargandoOverlay(mensaje = "Guardando mantenimiento...")
     }
 }
 
@@ -149,7 +179,7 @@ fun SeccionEstadoComponente(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            EstadoComponente.values().forEach { op ->
+            EstadoComponente.entries.forEach { op ->
                 FilterChip(
                     selected = estado == op,
                     onClick = { onEstadoChange(op) },

@@ -4,7 +4,9 @@ sealed class NavigationEvent {
         val route: Screen,
         val popUpToRoute: Screen? = null,
         val inclusive: Boolean = false,
-        val singleTop: Boolean = false
+        val singleTop: Boolean = false,
+        // Borra todo el historial (ej. al iniciar o cerrar sesión)
+        val limpiarHistorial: Boolean = false,
     ) : NavigationEvent()
 
     data object PopBackStack : NavigationEvent()

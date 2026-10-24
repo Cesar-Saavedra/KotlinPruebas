@@ -18,7 +18,8 @@ class MainViewModel : ViewModel() {
         screen: Screen,
         popUpToRoute: Screen? = null,
         inclusive: Boolean = false,
-        singleTop: Boolean = false
+        singleTop: Boolean = false,
+        limpiarHistorial: Boolean = false,
     ) {
         viewModelScope.launch {
             _navigationEvents.emit(
@@ -26,7 +27,8 @@ class MainViewModel : ViewModel() {
                     route = screen,
                     popUpToRoute = popUpToRoute,
                     inclusive = inclusive,
-                    singleTop = singleTop
+                    singleTop = singleTop,
+                    limpiarHistorial = limpiarHistorial,
                 )
             )
         }

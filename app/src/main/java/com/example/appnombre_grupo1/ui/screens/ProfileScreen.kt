@@ -13,13 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.example.appnombre_grupo1.navigation.Screen
 import com.example.appnombre_grupo1.viewmodels.MainViewModel
 
 @Composable
 fun ProfileScreen(
-    navController: NavController,
     viewModel: MainViewModel
 ) {
     val items = listOf(Screen.Home, Screen.Profile)

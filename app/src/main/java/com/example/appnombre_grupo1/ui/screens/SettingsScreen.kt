@@ -6,14 +6,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.example.appnombre_grupo1.navigation.Screen
 import com.example.appnombre_grupo1.viewmodels.MainViewModel
 
-@Suppress("UNUSED_PARAMETER")
 @Composable
 fun SettingsScreen(
-    navController: NavController,
     viewModel: MainViewModel,
 ) {
     var notificaciones by remember { mutableStateOf(value = true) }

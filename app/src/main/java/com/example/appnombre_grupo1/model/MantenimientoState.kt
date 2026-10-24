@@ -30,5 +30,8 @@ data class MantenimientoState(
     val limpiezaRealizada: Boolean = false,
     val reajusteTorqueRealizado: Boolean = false,
     val lubricacionRealizada: Boolean = false,
-    val observaciones: String = ""
+    val observaciones: String = "",
+
+    // Ruta de la foto guardada en el almacenamiento interno de la app (opcional)
+    val fotoPath: String? = null,
 )
