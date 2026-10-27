@@ -85,6 +85,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         val actual = _datosGenerales.value
         if (actual.cliente == nombreCliente) return
         actualizarDatosGenerales(actual.copy(cliente = nombreCliente, instalacion = "", tipoEquipo = ""))
+        calcularDistanciaAInstalacion()
     }
 
     // Al cambiar de instalación se limpia el equipo, que depende de ella
@@ -92,6 +93,120 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         val actual = _datosGenerales.value
         if (actual.instalacion == nombreInstalacion) return
         actualizarDatosGenerales(actual.copy(instalacion = nombreInstalacion, tipoEquipo = ""))
+        calcularDistanciaAInstalacion()
+    }
+
+    // --- Verificación GPS y Selección Automática ---
+    private val _ubicacionTecnico = MutableStateFlow<com.example.appnombre_grupo1.ui.utils.Ubicacion?>(null)
+    val ubicacionTecnico: StateFlow<com.example.appnombre_grupo1.ui.utils.Ubicacion?> = _ubicacionTecnico.asStateFlow()
+
+    private val _distanciaMetros = MutableStateFlow<Float?>(null)
+    val distanciaMetros: StateFlow<Float?> = _distanciaMetros.asStateFlow()
+
+    private val _buscandoUbicacion = MutableStateFlow(false)
+    val buscandoUbicacion: StateFlow<Boolean> = _buscandoUbicacion.asStateFlow()
+
+    private val _errorGps = MutableStateFlow<String?>(null)
+    val errorGps: StateFlow<String?> = _errorGps.asStateFlow()
+
+    fun actualizarUbicacionGps(context: android.content.Context) {
+        _buscandoUbicacion.value = true
+        _errorGps.value = null
+        com.example.appnombre_grupo1.ui.utils.UbicacionUtils.obtenerUbicacionActual(context) { ubicacion, error ->
+            _buscandoUbicacion.value = false
+            if (ubicacion != null) {
+                _ubicacionTecnico.value = ubicacion
+                calcularDistanciaAInstalacion()
+            } else {
+                _errorGps.value = error
+            }
+        }
+    }
+
+    fun detectarInstalacionAutomatica(context: android.content.Context) {
+        _buscandoUbicacion.value = true
+        _errorGps.value = null
+        com.example.appnombre_grupo1.ui.utils.UbicacionUtils.obtenerUbicacionActual(context) { ubicacion, error ->
+            _buscandoUbicacion.value = false
+            if (ubicacion != null) {
+                _ubicacionTecnico.value = ubicacion
+                var menorDistancia = Float.MAX_VALUE
+                var clienteElegido: Cliente? = null
+                var instalacionElegida: String? = null
+
+                clientes.value.forEach { cliente ->
+                    cliente.instalaciones.forEach { inst ->
+                        if (inst.latitud != null && inst.longitud != null) {
+                            val dist = com.example.appnombre_grupo1.ui.utils.UbicacionUtils.calcularDistanciaMetros(
+                                ubicacion.latitud, ubicacion.longitud,
+                                inst.latitud, inst.longitud
+                            )
+                            if (dist < menorDistancia) {
+                                menorDistancia = dist
+                                clienteElegido = cliente
+                                instalacionElegida = inst.nombre
+                            }
+                        }
+                    }
+                }
+
+                if (clienteElegido != null && instalacionElegida != null && menorDistancia <= com.example.appnombre_grupo1.ui.utils.UbicacionUtils.RANGO_MAXIMO_METROS) {
+                    val actual = _datosGenerales.value
+                    actualizarDatosGenerales(
+                        actual.copy(
+                            cliente = clienteElegido.nombre,
+                            instalacion = instalacionElegida,
+                            tipoEquipo = ""
+                        )
+                    )
+                    _distanciaMetros.value = menorDistancia
+                } else if (clienteElegido != null) {
+                    _errorGps.value = "La instalación más cercana es '$instalacionElegida' a %.0f metros (máx 100m).".format(menorDistancia)
+                } else {
+                    _errorGps.value = "No hay instalaciones georreferenciadas registradas."
+                }
+            } else {
+                _errorGps.value = error
+            }
+        }
+    }
+
+    fun calcularDistanciaAInstalacion() {
+        val ubicacion = _ubicacionTecnico.value ?: run {
+            _distanciaMetros.value = null
+            return
+        }
+        val datos = _datosGenerales.value
+        val clienteObj = clientes.value.firstOrNull { it.nombre == datos.cliente }
+        val instObj = clienteObj?.instalaciones?.firstOrNull { it.nombre == datos.instalacion }
+
+        if (instObj?.latitud != null && instObj.longitud != null) {
+            _distanciaMetros.value = com.example.appnombre_grupo1.ui.utils.UbicacionUtils.calcularDistanciaMetros(
+                ubicacion.latitud, ubicacion.longitud,
+                instObj.latitud, instObj.longitud
+            )
+        } else {
+            _distanciaMetros.value = null
+        }
+    }
+
+    fun validarRangoGps(): Boolean {
+        val datos = _datosGenerales.value
+        val clienteObj = clientes.value.firstOrNull { it.nombre == datos.cliente }
+        val instObj = clienteObj?.instalaciones?.firstOrNull { it.nombre == datos.instalacion }
+
+        if (instObj?.latitud != null && instObj.longitud != null) {
+            val dist = _distanciaMetros.value
+            if (dist == null || dist > com.example.appnombre_grupo1.ui.utils.UbicacionUtils.RANGO_MAXIMO_METROS) {
+                _errorGps.value = if (dist != null) {
+                    "Está a %.0f metros de la instalación. Debe estar a menos de 100m para realizar pruebas.".format(dist)
+                } else {
+                    "Obtenga su ubicación GPS para verificar la cercanía a la instalación."
+                }
+                return false
+            }
+        }
+        return true
     }
 
     // Activa la visualización de errores y devuelve true si se puede continuar

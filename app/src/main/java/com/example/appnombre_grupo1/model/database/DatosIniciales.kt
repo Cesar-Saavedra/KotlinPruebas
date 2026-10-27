@@ -17,14 +17,23 @@ import java.util.UUID
 class DatosIniciales(private val context: Context, private val gson: Gson) {
 
     suspend fun cargar(database: InduztekDatabase) {
-        val usuarios = leerUsuariosAnteriores() ?: usuariosDePrueba()
+        val usuariosAnteriores = leerUsuariosAnteriores()?.takeIf { it.isNotEmpty() }
+        val usuarios = if (!usuariosAnteriores.isNullOrEmpty()) usuariosAnteriores else usuariosDePrueba()
         usuarios.forEach { database.usuarioDao().guardar(it) }
 
-        val clientes = leerClientesAnteriores() ?: clientesDePrueba()
+        val clientesAnteriores = leerClientesAnteriores()?.takeIf { it.isNotEmpty() }
+        val clientes = if (!clientesAnteriores.isNullOrEmpty()) clientesAnteriores else clientesDePrueba()
         clientes.forEach { cliente ->
             database.clienteDao().guardarConInstalaciones(
                 cliente = ClienteEntity(id = cliente.id, nombre = cliente.nombre),
-                instalaciones = cliente.instalaciones.map { it.nombre to it.tiposEquipo },
+                instalaciones = cliente.instalaciones.map {
+                    com.example.appnombre_grupo1.model.database.dao.ClienteDao.DatosInstalacionGuardar(
+                        nombre = it.nombre,
+                        tipos = it.tiposEquipo,
+                        latitud = it.latitud,
+                        longitud = it.longitud,
+                    )
+                },
             )
         }
 
@@ -43,16 +52,16 @@ class DatosIniciales(private val context: Context, private val gson: Gson) {
             id = UUID.randomUUID().toString(),
             nombre = "Jumbo",
             instalaciones = listOf(
-                Instalacion("Jumbo Costanera Center", listOf("Transformador", "Tablero Eléctrico")),
-                Instalacion("Jumbo La Florida", listOf("Transformador", "Banco de Condensadores")),
+                Instalacion("Jumbo Costanera Center", listOf("Transformador", "Tablero Eléctrico"), latitud = -33.4173, longitud = -70.6062),
+                Instalacion("Jumbo La Florida", listOf("Transformador", "Banco de Condensadores"), latitud = -33.5225, longitud = -70.5982),
             ),
         ),
         Cliente(
             id = UUID.randomUUID().toString(),
             nombre = "Falabella",
             instalaciones = listOf(
-                Instalacion("Falabella Parque Arauco", listOf("Celda de Media Tensión", "Grupo Electrógeno")),
-                Instalacion("Centro de Distribución Quilicura", listOf("Transformador", "Celda de Media Tensión")),
+                Instalacion("Falabella Parque Arauco", listOf("Celda de Media Tensión", "Grupo Electrógeno"), latitud = -33.4018, longitud = -70.5786),
+                Instalacion("Centro de Distribución Quilicura", listOf("Transformador", "Celda de Media Tensión"), latitud = -33.3610, longitud = -70.7320),
             ),
         ),
     )
@@ -71,14 +80,14 @@ class DatosIniciales(private val context: Context, private val gson: Gson) {
         prefs.getString("clientes_v2", null)?.let { json ->
             return runCatching {
                 gson.fromJson<List<Cliente>>(json, object : TypeToken<List<Cliente>>() {}.type)
-            }.getOrNull()
+            }.getOrNull()?.takeIf { it.isNotEmpty() }
         }
         // Formato más antiguo: los equipos eran del cliente; se copian a cada instalación
         val json = prefs.getString("clientes", null) ?: return null
         return runCatching {
             gson.fromJson<List<ClienteV1>>(json, object : TypeToken<List<ClienteV1>>() {}.type)
                 .map { v1 -> Cliente(v1.id, v1.nombre, v1.instalaciones.map { Instalacion(it, v1.tiposEquipo) }) }
-        }.getOrNull()
+        }.getOrNull()?.takeIf { it.isNotEmpty() }
     }
 
     private fun leerRegistrosAnteriores(): List<RegistroGuardado> {

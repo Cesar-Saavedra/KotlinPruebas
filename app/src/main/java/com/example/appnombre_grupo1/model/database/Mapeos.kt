@@ -29,6 +29,8 @@ fun ClienteConInstalaciones.toModel() = Cliente(
             Instalacion(
                 nombre = conEquipos.instalacion.nombre,
                 tiposEquipo = conEquipos.tiposEquipo.sortedBy { it.id }.map { it.nombre },
+                latitud = conEquipos.instalacion.latitud,
+                longitud = conEquipos.instalacion.longitud,
             )
         },
 )

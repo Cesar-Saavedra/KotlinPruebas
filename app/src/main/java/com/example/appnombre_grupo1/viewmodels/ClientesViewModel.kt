@@ -104,6 +104,30 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun actualizarCoordenadasInstalacion(instalacionNombre: String, latitud: Double?, longitud: Double?) {
+        _form.update { form ->
+            form.copy(
+                instalaciones = form.instalaciones.map { inst ->
+                    if (inst.nombre == instalacionNombre) {
+                        inst.copy(latitud = latitud, longitud = longitud)
+                    } else {
+                        inst
+                    }
+                },
+            )
+        }
+    }
+
+    fun capturarUbicacionActualInstalacion(context: android.content.Context, instalacionNombre: String) {
+        com.example.appnombre_grupo1.ui.utils.UbicacionUtils.obtenerUbicacionActual(context) { ubicacion, error ->
+            if (ubicacion != null) {
+                actualizarCoordenadasInstalacion(instalacionNombre, ubicacion.latitud, ubicacion.longitud)
+            } else if (error != null) {
+                _form.update { it.copy(error = error) }
+            }
+        }
+    }
+
     // Devuelve true si el cliente se guardó correctamente
     fun guardar(): Boolean {
         val form = _form.value

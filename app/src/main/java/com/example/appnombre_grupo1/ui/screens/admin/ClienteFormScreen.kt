@@ -53,11 +53,13 @@ private fun TarjetaInstalacion(
     onAgregarTipoEquipo: () -> Unit,
     onQuitarTipoEquipo: (String) -> Unit,
     onQuitarInstalacion: () -> Unit,
+    onCoordenadasChange: (latitud: Double?, longitud: Double?) -> Unit,
+    onCapturarGps: () -> Unit,
 ) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocationOn, contentDescription = null)
@@ -70,6 +72,55 @@ private fun TarjetaInstalacion(
                 )
                 IconButton(onClick = onQuitarInstalacion) {
                     Icon(Icons.Default.Delete, contentDescription = "Quitar ${instalacion.nombre}")
+                }
+            }
+
+            // Sección de Georreferenciación GPS
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "Ubicación GPS (Verificación de 100m)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = instalacion.latitud?.toString().orEmpty(),
+                            onValueChange = { texto ->
+                                val lat = texto.toDoubleOrNull()
+                                onCoordenadasChange(lat, instalacion.longitud)
+                            },
+                            label = { Text("Latitud") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                        )
+                        OutlinedTextField(
+                            value = instalacion.longitud?.toString().orEmpty(),
+                            onValueChange = { texto ->
+                                val lon = texto.toDoubleOrNull()
+                                onCoordenadasChange(instalacion.latitud, lon)
+                            },
+                            label = { Text("Longitud") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                        )
+                    }
+                    TextButton(
+                        onClick = onCapturarGps,
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("📍 Capturar GPS Actual", style = MaterialTheme.typography.labelMedium)
+                    }
                 }
             }
 
@@ -117,6 +168,8 @@ fun ClienteFormScreen(
     onNuevoTipoEquipoChange: (instalacion: String, texto: String) -> Unit,
     onAgregarTipoEquipo: (instalacion: String) -> Unit,
     onQuitarTipoEquipo: (instalacion: String, tipo: String) -> Unit,
+    onCoordenadasChange: (instalacion: String, latitud: Double?, longitud: Double?) -> Unit = { _, _, _ -> },
+    onCapturarGps: (instalacion: String) -> Unit = {},
     onGuardarClick: () -> Unit,
     onEliminarClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -177,6 +230,8 @@ fun ClienteFormScreen(
                     onAgregarTipoEquipo = { onAgregarTipoEquipo(instalacion.nombre) },
                     onQuitarTipoEquipo = { onQuitarTipoEquipo(instalacion.nombre, it) },
                     onQuitarInstalacion = { onQuitarInstalacion(instalacion.nombre) },
+                    onCoordenadasChange = { lat, lon -> onCoordenadasChange(instalacion.nombre, lat, lon) },
+                    onCapturarGps = { onCapturarGps(instalacion.nombre) },
                 )
             }
 

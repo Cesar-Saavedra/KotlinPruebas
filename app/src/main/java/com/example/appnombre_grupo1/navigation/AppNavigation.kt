@@ -164,21 +164,30 @@ fun AppNavigation(
             val datosGenerales by formularioViewModel.datosGenerales.collectAsState()
             val clientes by formularioViewModel.clientes.collectAsState()
             val mostrarErrores by formularioViewModel.mostrarErrores.collectAsState()
+            val distanciaMetros by formularioViewModel.distanciaMetros.collectAsState()
+            val buscandoUbicacion by formularioViewModel.buscandoUbicacion.collectAsState()
+            val errorGps by formularioViewModel.errorGps.collectAsState()
+            val context = androidx.compose.ui.platform.LocalContext.current
 
             RegistroGeneralScreen(
                 state = datosGenerales,
                 clientes = clientes,
                 mostrarErrores = mostrarErrores,
+                distanciaMetros = distanciaMetros,
+                buscandoUbicacion = buscandoUbicacion,
+                errorGps = errorGps,
                 onStateChange = formularioViewModel::actualizarDatosGenerales,
                 onClienteChange = formularioViewModel::seleccionarCliente,
                 onInstalacionChange = formularioViewModel::seleccionarInstalacion,
+                onDetectarInstalacionGps = { formularioViewModel.detectarInstalacionAutomatica(context) },
+                onActualizarUbicacionGps = { formularioViewModel.actualizarUbicacionGps(context) },
                 onContinuarMantenimiento = {
-                    if (formularioViewModel.validarDatosGenerales()) {
+                    if (formularioViewModel.validarDatosGenerales() && formularioViewModel.validarRangoGps()) {
                         mainViewModel.navigateTo(Screen.Maintenance)
                     }
                 },
                 onContinuarPruebas = {
-                    if (formularioViewModel.validarDatosGenerales()) {
+                    if (formularioViewModel.validarDatosGenerales() && formularioViewModel.validarRangoGps()) {
                         mainViewModel.navigateTo(Screen.Test)
                     }
                 },
@@ -255,6 +264,7 @@ fun AppNavigation(
 
         composable(Screen.ClienteForm.route) {
             val form by clientesViewModel.form.collectAsState()
+            val context = androidx.compose.ui.platform.LocalContext.current
 
             ClienteFormScreen(
                 state = form,
@@ -265,6 +275,10 @@ fun AppNavigation(
                 onNuevoTipoEquipoChange = clientesViewModel::actualizarNuevoTipoEquipo,
                 onAgregarTipoEquipo = clientesViewModel::agregarTipoEquipo,
                 onQuitarTipoEquipo = clientesViewModel::quitarTipoEquipo,
+                onCoordenadasChange = clientesViewModel::actualizarCoordenadasInstalacion,
+                onCapturarGps = { instalacionNombre ->
+                    clientesViewModel.capturarUbicacionActualInstalacion(context, instalacionNombre)
+                },
                 onGuardarClick = {
                     if (clientesViewModel.guardar()) mainViewModel.navigateBack()
                 },

@@ -19,7 +19,14 @@ class ClienteRepository(private val dao: ClienteDao) {
         val id = cliente.id.ifBlank { UUID.randomUUID().toString() }
         dao.guardarConInstalaciones(
             cliente = ClienteEntity(id = id, nombre = cliente.nombre),
-            instalaciones = cliente.instalaciones.map { it.nombre to it.tiposEquipo },
+            instalaciones = cliente.instalaciones.map {
+                ClienteDao.DatosInstalacionGuardar(
+                    nombre = it.nombre,
+                    tipos = it.tiposEquipo,
+                    latitud = it.latitud,
+                    longitud = it.longitud,
+                )
+            },
         )
     }
 
