@@ -210,10 +210,7 @@ fun AppNavigation(
                         mainViewModel.navigateTo(Screen.Test)
                     }
                 },
-            FormularioGeneral(
-                viewModel = formularioViewModel,
-                onContinuarMantenimiento = { mainViewModel.navigateTo(Screen.Maintenance) },
-                onContinuarPruebas = { mainViewModel.navigateTo(Screen.Test) },
+                onBackCLick = mainViewModel::navigateBack
             )
         }
 
@@ -239,6 +236,7 @@ fun AppNavigation(
                 viewModel = edicionViewModel,
                 onContinuarMantenimiento = { mainViewModel.navigateTo(Screen.EditarMantenimiento) },
                 onContinuarPruebas = { mainViewModel.navigateTo(Screen.EditarPrueba) },
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -433,6 +431,7 @@ private fun FormularioGeneral(
     viewModel: FormularioViewModel,
     onContinuarMantenimiento: () -> Unit,
     onContinuarPruebas: () -> Unit,
+    onBackClick: () -> Unit,
 ) {
     val datosGenerales by viewModel.datosGenerales.collectAsState()
     val clientes by viewModel.clientes.collectAsState()
@@ -453,6 +452,7 @@ private fun FormularioGeneral(
             if (viewModel.validarDatosGenerales()) onContinuarPruebas()
         },
         protocoloEnEdicion = registroEnEdicion?.tipo,
+        onBackCLick = onBackClick
     )
 }
 

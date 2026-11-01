@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.LocationOn
@@ -43,6 +44,7 @@ fun RegistroGeneralScreen(
     onContinuarPruebas: () -> Unit,
     // Al editar un registro guardado: su protocolo (solo se puede continuar a ese). null = registro nuevo
     protocoloEnEdicion: TipoRegistro? = null,
+    onBackCLick: () -> Unit,
 ) {
     val editando = protocoloEnEdicion != null
 
@@ -85,7 +87,10 @@ fun RegistroGeneralScreen(
     val codigoEquipoError = state.errores.codigoEquipo.takeIf { mostrarErrores }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(if (editando) "Editar Registro" else "Nuevo Registro de Terreno") }) },
+        topBar = { TopAppBar(title = { Text(if (editando) "Editar Registro" else "Nuevo Registro de Terreno") },
+            navigationIcon = {
+                IconButton(onClick = onBackCLick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
+                } }) }
     ) { paddingValues ->
         Column(
             modifier = Modifier

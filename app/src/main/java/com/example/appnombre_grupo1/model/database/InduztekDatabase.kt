@@ -29,7 +29,7 @@ import com.example.appnombre_grupo1.model.database.entity.UsuarioEntity
         PruebaElectricaEntity::class,
         EdicionRegistroEntity::class,
     ],
-    version = 4,
+    version = 3,
     exportSchema = false,
 )
 abstract class InduztekDatabase : RoomDatabase() {
