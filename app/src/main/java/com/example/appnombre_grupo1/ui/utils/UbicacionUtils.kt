@@ -8,6 +8,8 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.ContextCompat
 
 data class Ubicacion(
@@ -19,6 +21,12 @@ object UbicacionUtils {
 
     // Rango máximo permitido en metros (100 metros)
     const val RANGO_MAXIMO_METROS = 100.0f
+
+    // Tiempo máximo esperando una ubicación nueva antes de rendirse
+    private const val TIEMPO_MAXIMO_MS = 15_000L
+
+    // Antigüedad máxima de la última ubicación conocida para usarla como respaldo (2 minutos)
+    private const val ANTIGUEDAD_MAXIMA_RESPALDO_MS = 120_000L
 
     /**
      * Verifica si la aplicación tiene concedidos los permisos de ubicación en runtime.
@@ -74,16 +82,41 @@ object UbicacionUtils {
             else -> ultimaRed
         }
 
+        // Si el teléfono tiene una ubicación de hace menos de 1 minuto, se usa directamente
         if (mejorUltima != null && (System.currentTimeMillis() - mejorUltima.time) < 60_000) {
             onUbicacionObtenida(Ubicacion(mejorUltima.latitude, mejorUltima.longitude), null)
             return
         }
 
-        val provider = if (gpsHabilitado) LocationManager.GPS_PROVIDER else LocationManager.NETWORK_PROVIDER
-        val listener = object : LocationListener {
+        // Si no, se pide una ubicación nueva. Se responde una sola vez: con la ubicación nueva,
+        // o al cumplirse el tiempo máximo (así la pantalla nunca queda esperando para siempre)
+        val handler = Handler(Looper.getMainLooper())
+        var respondido = false
+        lateinit var listener: LocationListener
+
+        val responder = { ubicacion: Ubicacion?, error: String? ->
+            if (!respondido) {
+                respondido = true
+                handler.removeCallbacksAndMessages(null)
+                locationManager.removeUpdates(listener)
+                onUbicacionObtenida(ubicacion, error)
+            }
+        }
+
+        // Respaldo: la última ubicación conocida solo si es reciente (una antigua no prueba
+        // que el técnico esté en la instalación ahora)
+        val responderConRespaldo = { mensajeError: String ->
+            val respaldo = mejorUltima?.takeIf { System.currentTimeMillis() - it.time < ANTIGUEDAD_MAXIMA_RESPALDO_MS }
+            if (respaldo != null) {
+                responder(Ubicacion(respaldo.latitude, respaldo.longitude), null)
+            } else {
+                responder(null, mensajeError)
+            }
+        }
+
+        listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                locationManager.removeUpdates(this)
-                onUbicacionObtenida(Ubicacion(location.latitude, location.longitude), null)
+                responder(Ubicacion(location.latitude, location.longitude), null)
             }
             @Deprecated("Deprecated in API 29")
             override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -91,19 +124,17 @@ object UbicacionUtils {
             override fun onProviderDisabled(provider: String) {}
         }
 
+        val provider = if (gpsHabilitado) LocationManager.GPS_PROVIDER else LocationManager.NETWORK_PROVIDER
         try {
-            locationManager.requestSingleUpdate(provider, listener, null)
-            if (mejorUltima != null) {
-                onUbicacionObtenida(Ubicacion(mejorUltima.latitude, mejorUltima.longitude), null)
-            }
+            locationManager.requestSingleUpdate(provider, listener, Looper.getMainLooper())
+            handler.postDelayed(
+                { responderConRespaldo("No se pudo obtener la ubicación. Intente de nuevo, idealmente al aire libre.") },
+                TIEMPO_MAXIMO_MS,
+            )
         } catch (e: SecurityException) {
-            onUbicacionObtenida(null, "Permisos de ubicación no concedidos")
+            responder(null, "Permisos de ubicación no concedidos")
         } catch (e: Exception) {
-            if (mejorUltima != null) {
-                onUbicacionObtenida(Ubicacion(mejorUltima.latitude, mejorUltima.longitude), null)
-            } else {
-                onUbicacionObtenida(null, "No se pudo obtener la ubicación GPS")
-            }
+            responderConRespaldo("No se pudo obtener la ubicación GPS")
         }
     }
 }

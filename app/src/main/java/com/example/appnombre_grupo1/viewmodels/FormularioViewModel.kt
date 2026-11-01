@@ -373,7 +373,9 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         _registroEnEdicion.value = null
         editor = null
         tecnico = usuario
-        // La verificación GPS se hace de nuevo en cada registro
+        // La verificación GPS se hace de nuevo en cada registro: no se reutiliza la ubicación
+        // de un registro anterior (podría ser de otro lugar u otra hora)
+        _ubicacionTecnico.value = null
         _distanciaMetros.value = null
         _errorGps.value = null
         _datosGenerales.value = DatosGeneralesForm(tecnico = usuario.nombre)
