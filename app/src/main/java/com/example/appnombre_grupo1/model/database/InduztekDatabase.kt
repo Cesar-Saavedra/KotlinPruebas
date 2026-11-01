@@ -65,5 +65,13 @@ abstract class InduztekDatabase : RoomDatabase() {
                 )
             }
         }
+
+        // Versión 2 → 3: coordenadas GPS de cada instalación (opcionales, por eso aceptan NULL)
+        val MIGRACION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE instalaciones ADD COLUMN latitud REAL")
+                db.execSQL("ALTER TABLE instalaciones ADD COLUMN longitud REAL")
+            }
+        }
     }
 }

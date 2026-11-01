@@ -16,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -24,6 +23,7 @@ import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.DatosGeneralesForm
 import com.example.appnombre_grupo1.model.TipoRegistro
 import com.example.appnombre_grupo1.ui.components.SelectorDesplegable
+import com.example.appnombre_grupo1.ui.components.rememberAccionConPermisoUbicacion
 import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,38 +44,12 @@ fun RegistroGeneralScreen(
     onContinuarPruebas: () -> Unit,
     // Al editar un registro guardado: su protocolo (solo se puede continuar a ese). null = registro nuevo
     protocoloEnEdicion: TipoRegistro? = null,
-    onBackCLick: () -> Unit,
+    onBackClick: () -> Unit,
 ) {
     val editando = protocoloEnEdicion != null
 
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
-
-    var callbackGpsPendiente by remember { mutableStateOf<(() -> Unit)?>(null) }
-    val launcherPermisoUbicacion = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-    ) { permisos ->
-        val concedido = permisos[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                permisos[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (concedido) {
-            callbackGpsPendiente?.invoke()
-        }
-        callbackGpsPendiente = null
-    }
-
-    fun ejecutarConPermisoGps(accion: () -> Unit) {
-        if (UbicacionUtils.tienePermisoUbicacion(context)) {
-            accion()
-        } else {
-            callbackGpsPendiente = accion
-            launcherPermisoUbicacion.launch(
-                arrayOf(
-                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
-        }
-    }
+    val ejecutarConPermisoGps = rememberAccionConPermisoUbicacion()
 
     val clienteSeleccionado = clientes.firstOrNull { it.nombre == state.cliente }
     val instalacionSeleccionada = clienteSeleccionado?.instalaciones?.firstOrNull { it.nombre == state.instalacion }
@@ -87,10 +61,16 @@ fun RegistroGeneralScreen(
     val codigoEquipoError = state.errores.codigoEquipo.takeIf { mostrarErrores }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(if (editando) "Editar Registro" else "Nuevo Registro de Terreno") },
-            navigationIcon = {
-                IconButton(onClick = onBackCLick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
-                } }) }
+        topBar = {
+            TopAppBar(
+                title = { Text(if (editando) "Editar Registro" else "Nuevo Registro de Terreno") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
+                    }
+                },
+            )
+        },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -102,106 +82,108 @@ fun RegistroGeneralScreen(
         ) {
             Text("Datos del Cliente y Equipo", style = MaterialTheme.typography.titleMedium)
 
-            // --- Sección Verificación y Auto-detección GPS ---
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.outlinedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            // --- Verificación y auto-detección GPS (solo al crear: al editar se corrige desde cualquier lugar) ---
+            if (!editando) {
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            "📍 Verificación GPS (Máx. 100m)",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        if (buscandoUbicacion) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { ejecutarConPermisoGps(onDetectarInstalacionGps) },
-                            modifier = Modifier.weight(1f),
-                            enabled = !buscandoUbicacion
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Auto-detectar", style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                "📍 Verificación GPS (Máx. 100m)",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            if (buscandoUbicacion) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            }
                         }
 
-                        OutlinedButton(
-                            onClick = { ejecutarConPermisoGps(onActualizarUbicacionGps) },
-                            enabled = !buscandoUbicacion
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    }
+                            OutlinedButton(
+                                onClick = { ejecutarConPermisoGps(onDetectarInstalacionGps) },
+                                modifier = Modifier.weight(1f),
+                                enabled = !buscandoUbicacion
+                            ) {
+                                Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Auto-detectar", style = MaterialTheme.typography.labelMedium)
+                            }
 
-                    if (instalacionSeleccionada != null) {
-                        if (instalacionSeleccionada.latitud != null && instalacionSeleccionada.longitud != null) {
-                            if (distanciaMetros != null) {
-                                val enRango = distanciaMetros <= UbicacionUtils.RANGO_MAXIMO_METROS
-                                Surface(
-                                    color = if (enRango) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
-                                    shape = MaterialTheme.shapes.small,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                            OutlinedButton(
+                                onClick = { ejecutarConPermisoGps(onActualizarUbicacionGps) },
+                                enabled = !buscandoUbicacion
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        }
+
+                        if (instalacionSeleccionada != null) {
+                            if (instalacionSeleccionada.latitud != null && instalacionSeleccionada.longitud != null) {
+                                if (distanciaMetros != null) {
+                                    val enRango = distanciaMetros <= UbicacionUtils.RANGO_MAXIMO_METROS
+                                    Surface(
+                                        color = if (enRango) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                                        shape = MaterialTheme.shapes.small,
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Icon(
-                                            Icons.Default.LocationOn,
-                                            contentDescription = null,
-                                            tint = if (enRango) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = if (enRango) {
-                                                "✅ En rango permitido (%.0f m de la instalación)".format(distanciaMetros)
-                                            } else {
-                                                "⚠️ Fuera de rango (%.0f m de la instalación, máx 100m)".format(distanciaMetros)
-                                            },
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (enRango) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
-                                        )
+                                        Row(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Default.LocationOn,
+                                                contentDescription = null,
+                                                tint = if (enRango) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = if (enRango) {
+                                                    "✅ En rango permitido (%.0f m de la instalación)".format(distanciaMetros)
+                                                } else {
+                                                    "⚠️ Fuera de rango (%.0f m de la instalación, máx 100m)".format(distanciaMetros)
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = if (enRango) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                        }
                                     }
+                                } else {
+                                    Text(
+                                        "Presione 'Auto-detectar' o 'Actualizar GPS' para verificar distancia.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
                                 }
                             } else {
                                 Text(
-                                    "Presione 'Auto-detectar' o 'Actualizar GPS' para verificar distancia.",
+                                    "ℹ️ Esta instalación no tiene coordenadas GPS asignadas por el administrador.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )
                             }
-                        } else {
+                        }
+
+                        errorGps?.let { error ->
                             Text(
-                                "ℹ️ Esta instalación no tiene coordenadas GPS asignadas por el administrador.",
+                                text = error,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
+                                color = MaterialTheme.colorScheme.error
                             )
                         }
-                    }
-
-                    errorGps?.let { error ->
-                        Text(
-                            text = error,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
                     }
                 }
             }

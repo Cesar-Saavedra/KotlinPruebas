@@ -16,9 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.ClienteForm
 import com.example.appnombre_grupo1.model.Instalacion
+import com.example.appnombre_grupo1.ui.components.rememberAccionConPermisoUbicacion
 
 // Campo de texto con un botón para agregar lo escrito
 @Composable
@@ -43,6 +45,40 @@ private fun CampoAgregar(
         }
     }
 }
+
+// Campo para una coordenada. Guarda el texto tal como se escribe, así se pueden escribir
+// valores intermedios como "-" o "-33." (en Chile todas las coordenadas son negativas).
+// Al ViewModel solo le llega el número cuando el texto es válido, o null si no lo es.
+@Composable
+private fun CampoCoordenada(
+    valor: Double?,
+    etiqueta: String,
+    onValorChange: (Double?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var texto by remember { mutableStateOf(valor?.toString().orEmpty()) }
+
+    // Si la coordenada cambia desde afuera (ej. "Capturar GPS"), se actualiza el texto
+    LaunchedEffect(valor) {
+        if (aCoordenada(texto) != valor) texto = valor?.toString().orEmpty()
+    }
+
+    OutlinedTextField(
+        value = texto,
+        onValueChange = {
+            texto = it
+            onValorChange(aCoordenada(it))
+        },
+        label = { Text(etiqueta) },
+        isError = texto.isNotBlank() && aCoordenada(texto) == null,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = modifier,
+    )
+}
+
+// Acepta coma o punto como separador decimal
+private fun aCoordenada(texto: String): Double? = texto.trim().replace(',', '.').toDoubleOrNull()
 
 // Tarjeta de una instalación con la lista de tipos de equipo vinculados a ella
 @Composable
@@ -92,27 +128,17 @@ private fun TarjetaInstalacion(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = instalacion.latitud?.toString().orEmpty(),
-                            onValueChange = { texto ->
-                                val lat = texto.toDoubleOrNull()
-                                onCoordenadasChange(lat, instalacion.longitud)
-                            },
-                            label = { Text("Latitud") },
-                            singleLine = true,
+                        CampoCoordenada(
+                            valor = instalacion.latitud,
+                            etiqueta = "Latitud",
+                            onValorChange = { onCoordenadasChange(it, instalacion.longitud) },
                             modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
                         )
-                        OutlinedTextField(
-                            value = instalacion.longitud?.toString().orEmpty(),
-                            onValueChange = { texto ->
-                                val lon = texto.toDoubleOrNull()
-                                onCoordenadasChange(instalacion.latitud, lon)
-                            },
-                            label = { Text("Longitud") },
-                            singleLine = true,
+                        CampoCoordenada(
+                            valor = instalacion.longitud,
+                            etiqueta = "Longitud",
+                            onValorChange = { onCoordenadasChange(instalacion.latitud, it) },
                             modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
                         )
                     }
                     TextButton(
@@ -176,33 +202,7 @@ fun ClienteFormScreen(
 ) {
     var confirmarEliminar by remember { mutableStateOf(value = false) }
     val esNuevo = state.id == null
-    val context = androidx.compose.ui.platform.LocalContext.current
-
-    var callbackGpsPendiente by remember { mutableStateOf<(() -> Unit)?>(null) }
-    val launcherPermisoUbicacion = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-    ) { permisos ->
-        val concedido = permisos[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                permisos[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (concedido) {
-            callbackGpsPendiente?.invoke()
-        }
-        callbackGpsPendiente = null
-    }
-
-    fun ejecutarConPermisoGps(accion: () -> Unit) {
-        if (com.example.appnombre_grupo1.ui.utils.UbicacionUtils.tienePermisoUbicacion(context)) {
-            accion()
-        } else {
-            callbackGpsPendiente = accion
-            launcherPermisoUbicacion.launch(
-                arrayOf(
-                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
-        }
-    }
+    val ejecutarConPermisoGps = rememberAccionConPermisoUbicacion()
 
     Scaffold(
         topBar = {
@@ -250,16 +250,19 @@ fun ClienteFormScreen(
             }
 
             state.instalaciones.forEach { instalacion ->
-                TarjetaInstalacion(
-                    instalacion = instalacion,
-                    nuevoTipoEquipo = state.nuevoTipoEquipo[instalacion.nombre].orEmpty(),
-                    onNuevoTipoEquipoChange = { onNuevoTipoEquipoChange(instalacion.nombre, it) },
-                    onAgregarTipoEquipo = { onAgregarTipoEquipo(instalacion.nombre) },
-                    onQuitarTipoEquipo = { onQuitarTipoEquipo(instalacion.nombre, it) },
-                    onQuitarInstalacion = { onQuitarInstalacion(instalacion.nombre) },
-                    onCoordenadasChange = { lat, lon -> onCoordenadasChange(instalacion.nombre, lat, lon) },
-                    onCapturarGps = { ejecutarConPermisoGps { onCapturarGps(instalacion.nombre) } },
-                )
+                // key: cada tarjeta conserva su propio estado aunque se quite otra instalación
+                key(instalacion.nombre) {
+                    TarjetaInstalacion(
+                        instalacion = instalacion,
+                        nuevoTipoEquipo = state.nuevoTipoEquipo[instalacion.nombre].orEmpty(),
+                        onNuevoTipoEquipoChange = { onNuevoTipoEquipoChange(instalacion.nombre, it) },
+                        onAgregarTipoEquipo = { onAgregarTipoEquipo(instalacion.nombre) },
+                        onQuitarTipoEquipo = { onQuitarTipoEquipo(instalacion.nombre, it) },
+                        onQuitarInstalacion = { onQuitarInstalacion(instalacion.nombre) },
+                        onCoordenadasChange = { lat, lon -> onCoordenadasChange(instalacion.nombre, lat, lon) },
+                        onCapturarGps = { ejecutarConPermisoGps { onCapturarGps(instalacion.nombre) } },
+                    )
+                }
             }
 
             CampoAgregar(

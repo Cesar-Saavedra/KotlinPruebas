@@ -5,6 +5,7 @@ import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.Instalacion
 import com.example.appnombre_grupo1.model.RegistroGuardado
 import com.example.appnombre_grupo1.model.RolUsuario
+import com.example.appnombre_grupo1.model.database.dao.ClienteDao
 import com.example.appnombre_grupo1.model.database.entity.ClienteEntity
 import com.example.appnombre_grupo1.model.database.entity.UsuarioEntity
 import com.example.appnombre_grupo1.model.hashPassword
@@ -27,7 +28,7 @@ class DatosIniciales(private val context: Context, private val gson: Gson) {
             database.clienteDao().guardarConInstalaciones(
                 cliente = ClienteEntity(id = cliente.id, nombre = cliente.nombre),
                 instalaciones = cliente.instalaciones.map {
-                    com.example.appnombre_grupo1.model.database.dao.ClienteDao.DatosInstalacionGuardar(
+                    ClienteDao.DatosInstalacionGuardar(
                         nombre = it.nombre,
                         tipos = it.tiposEquipo,
                         latitud = it.latitud,

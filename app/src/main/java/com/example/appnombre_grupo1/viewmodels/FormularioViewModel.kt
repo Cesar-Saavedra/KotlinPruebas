@@ -13,6 +13,8 @@ import com.example.appnombre_grupo1.model.RegistroGuardado
 import com.example.appnombre_grupo1.model.TipoRegistro
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.model.validation.DatosGeneralesValidator
+import com.example.appnombre_grupo1.ui.utils.Ubicacion
+import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -107,8 +109,8 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     // --- Verificación GPS y Selección Automática ---
-    private val _ubicacionTecnico = MutableStateFlow<com.example.appnombre_grupo1.ui.utils.Ubicacion?>(null)
-    val ubicacionTecnico: StateFlow<com.example.appnombre_grupo1.ui.utils.Ubicacion?> = _ubicacionTecnico.asStateFlow()
+    private val _ubicacionTecnico = MutableStateFlow<Ubicacion?>(null)
+    val ubicacionTecnico: StateFlow<Ubicacion?> = _ubicacionTecnico.asStateFlow()
 
     private val _distanciaMetros = MutableStateFlow<Float?>(null)
     val distanciaMetros: StateFlow<Float?> = _distanciaMetros.asStateFlow()
@@ -119,10 +121,11 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
     private val _errorGps = MutableStateFlow<String?>(null)
     val errorGps: StateFlow<String?> = _errorGps.asStateFlow()
 
-    fun actualizarUbicacionGps(context: android.content.Context) {
+    // La ubicación se pide con el contexto de la aplicación (no el de la pantalla) para no retenerla en memoria
+    fun actualizarUbicacionGps() {
         _buscandoUbicacion.value = true
         _errorGps.value = null
-        com.example.appnombre_grupo1.ui.utils.UbicacionUtils.obtenerUbicacionActual(context) { ubicacion, error ->
+        UbicacionUtils.obtenerUbicacionActual(getApplication<Application>()) { ubicacion, error ->
             _buscandoUbicacion.value = false
             if (ubicacion != null) {
                 _ubicacionTecnico.value = ubicacion
@@ -133,10 +136,10 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun detectarInstalacionAutomatica(context: android.content.Context) {
+    fun detectarInstalacionAutomatica() {
         _buscandoUbicacion.value = true
         _errorGps.value = null
-        com.example.appnombre_grupo1.ui.utils.UbicacionUtils.obtenerUbicacionActual(context) { ubicacion, error ->
+        UbicacionUtils.obtenerUbicacionActual(getApplication<Application>()) { ubicacion, error ->
             _buscandoUbicacion.value = false
             if (ubicacion != null) {
                 _ubicacionTecnico.value = ubicacion
@@ -147,7 +150,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
                 clientes.value.forEach { cliente ->
                     cliente.instalaciones.forEach { inst ->
                         if (inst.latitud != null && inst.longitud != null) {
-                            val dist = com.example.appnombre_grupo1.ui.utils.UbicacionUtils.calcularDistanciaMetros(
+                            val dist = UbicacionUtils.calcularDistanciaMetros(
                                 ubicacion.latitud, ubicacion.longitud,
                                 inst.latitud, inst.longitud
                             )
@@ -160,7 +163,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
                     }
                 }
 
-                if (clienteElegido != null && instalacionElegida != null && menorDistancia <= com.example.appnombre_grupo1.ui.utils.UbicacionUtils.RANGO_MAXIMO_METROS) {
+                if (clienteElegido != null && instalacionElegida != null && menorDistancia <= UbicacionUtils.RANGO_MAXIMO_METROS) {
                     val actual = _datosGenerales.value
                     actualizarDatosGenerales(
                         actual.copy(
@@ -191,7 +194,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         val instObj = clienteObj?.instalaciones?.firstOrNull { it.nombre == datos.instalacion }
 
         if (instObj?.latitud != null && instObj.longitud != null) {
-            _distanciaMetros.value = com.example.appnombre_grupo1.ui.utils.UbicacionUtils.calcularDistanciaMetros(
+            _distanciaMetros.value = UbicacionUtils.calcularDistanciaMetros(
                 ubicacion.latitud, ubicacion.longitud,
                 instObj.latitud, instObj.longitud
             )
@@ -207,7 +210,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
 
         if (instObj?.latitud != null && instObj.longitud != null) {
             val dist = _distanciaMetros.value
-            if (dist == null || dist > com.example.appnombre_grupo1.ui.utils.UbicacionUtils.RANGO_MAXIMO_METROS) {
+            if (dist == null || dist > UbicacionUtils.RANGO_MAXIMO_METROS) {
                 _errorGps.value = if (dist != null) {
                     "Está a %.0f metros de la instalación. Debe estar a menos de 100m para realizar pruebas.".format(dist)
                 } else {
@@ -370,6 +373,9 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         _registroEnEdicion.value = null
         editor = null
         tecnico = usuario
+        // La verificación GPS se hace de nuevo en cada registro
+        _distanciaMetros.value = null
+        _errorGps.value = null
         _datosGenerales.value = DatosGeneralesForm(tecnico = usuario.nombre)
         _mostrarErrores.value = false
         _mantenimientoState.value = MantenimientoState(datosGenerales = _datosGenerales.value)

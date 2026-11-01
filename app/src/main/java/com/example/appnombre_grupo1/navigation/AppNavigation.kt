@@ -180,37 +180,13 @@ fun AppNavigation(
         }
 
         composable(Screen.GeneralForm.route) {
-            val datosGenerales by formularioViewModel.datosGenerales.collectAsState()
-            val clientes by formularioViewModel.clientes.collectAsState()
-            val mostrarErrores by formularioViewModel.mostrarErrores.collectAsState()
-            val distanciaMetros by formularioViewModel.distanciaMetros.collectAsState()
-            val buscandoUbicacion by formularioViewModel.buscandoUbicacion.collectAsState()
-            val errorGps by formularioViewModel.errorGps.collectAsState()
-            val context = androidx.compose.ui.platform.LocalContext.current
-
-            RegistroGeneralScreen(
-                state = datosGenerales,
-                clientes = clientes,
-                mostrarErrores = mostrarErrores,
-                distanciaMetros = distanciaMetros,
-                buscandoUbicacion = buscandoUbicacion,
-                errorGps = errorGps,
-                onStateChange = formularioViewModel::actualizarDatosGenerales,
-                onClienteChange = formularioViewModel::seleccionarCliente,
-                onInstalacionChange = formularioViewModel::seleccionarInstalacion,
-                onDetectarInstalacionGps = { formularioViewModel.detectarInstalacionAutomatica(context) },
-                onActualizarUbicacionGps = { formularioViewModel.actualizarUbicacionGps(context) },
-                onContinuarMantenimiento = {
-                    if (formularioViewModel.validarDatosGenerales() && formularioViewModel.validarRangoGps()) {
-                        mainViewModel.navigateTo(Screen.Maintenance)
-                    }
-                },
-                onContinuarPruebas = {
-                    if (formularioViewModel.validarDatosGenerales() && formularioViewModel.validarRangoGps()) {
-                        mainViewModel.navigateTo(Screen.Test)
-                    }
-                },
-                onBackCLick = mainViewModel::navigateBack
+            FormularioGeneral(
+                viewModel = formularioViewModel,
+                // Al crear un registro el técnico debe estar a menos de 100 m de la instalación
+                verificarGps = true,
+                onContinuarMantenimiento = { mainViewModel.navigateTo(Screen.Maintenance) },
+                onContinuarPruebas = { mainViewModel.navigateTo(Screen.Test) },
+                onBackClick = mainViewModel::navigateBack,
             )
         }
 
@@ -234,6 +210,7 @@ fun AppNavigation(
         composable(Screen.EditarGeneral.route) {
             FormularioGeneral(
                 viewModel = edicionViewModel,
+                verificarGps = false,
                 onContinuarMantenimiento = { mainViewModel.navigateTo(Screen.EditarMantenimiento) },
                 onContinuarPruebas = { mainViewModel.navigateTo(Screen.EditarPrueba) },
                 onBackClick = mainViewModel::navigateBack,
@@ -289,7 +266,6 @@ fun AppNavigation(
 
         composable(Screen.ClienteForm.route) {
             val form by clientesViewModel.form.collectAsState()
-            val context = androidx.compose.ui.platform.LocalContext.current
 
             ClienteFormScreen(
                 state = form,
@@ -301,9 +277,7 @@ fun AppNavigation(
                 onAgregarTipoEquipo = clientesViewModel::agregarTipoEquipo,
                 onQuitarTipoEquipo = clientesViewModel::quitarTipoEquipo,
                 onCoordenadasChange = clientesViewModel::actualizarCoordenadasInstalacion,
-                onCapturarGps = { instalacionNombre ->
-                    clientesViewModel.capturarUbicacionActualInstalacion(context, instalacionNombre)
-                },
+                onCapturarGps = clientesViewModel::capturarUbicacionActualInstalacion,
                 onGuardarClick = {
                     if (clientesViewModel.guardar()) mainViewModel.navigateBack()
                 },
@@ -429,6 +403,7 @@ fun AppNavigation(
 @Composable
 private fun FormularioGeneral(
     viewModel: FormularioViewModel,
+    verificarGps: Boolean,
     onContinuarMantenimiento: () -> Unit,
     onContinuarPruebas: () -> Unit,
     onBackClick: () -> Unit,
@@ -437,22 +412,29 @@ private fun FormularioGeneral(
     val clientes by viewModel.clientes.collectAsState()
     val mostrarErrores by viewModel.mostrarErrores.collectAsState()
     val registroEnEdicion by viewModel.registroEnEdicion.collectAsState()
+    val distanciaMetros by viewModel.distanciaMetros.collectAsState()
+    val buscandoUbicacion by viewModel.buscandoUbicacion.collectAsState()
+    val errorGps by viewModel.errorGps.collectAsState()
+
+    // Datos completos y, si corresponde, técnico dentro del rango de la instalación
+    val puedeContinuar = { viewModel.validarDatosGenerales() && (!verificarGps || viewModel.validarRangoGps()) }
 
     RegistroGeneralScreen(
         state = datosGenerales,
         clientes = clientes,
         mostrarErrores = mostrarErrores,
+        distanciaMetros = distanciaMetros,
+        buscandoUbicacion = buscandoUbicacion,
+        errorGps = errorGps,
         onStateChange = viewModel::actualizarDatosGenerales,
         onClienteChange = viewModel::seleccionarCliente,
         onInstalacionChange = viewModel::seleccionarInstalacion,
-        onContinuarMantenimiento = {
-            if (viewModel.validarDatosGenerales()) onContinuarMantenimiento()
-        },
-        onContinuarPruebas = {
-            if (viewModel.validarDatosGenerales()) onContinuarPruebas()
-        },
+        onDetectarInstalacionGps = viewModel::detectarInstalacionAutomatica,
+        onActualizarUbicacionGps = viewModel::actualizarUbicacionGps,
+        onContinuarMantenimiento = { if (puedeContinuar()) onContinuarMantenimiento() },
+        onContinuarPruebas = { if (puedeContinuar()) onContinuarPruebas() },
         protocoloEnEdicion = registroEnEdicion?.tipo,
-        onBackCLick = onBackClick
+        onBackClick = onBackClick,
     )
 }
 
