@@ -1,6 +1,8 @@
 package com.example.appnombre_grupo1.ui.components
 
+import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -18,7 +20,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 
 // Muestra la foto elegida y permite tomarla con la cámara o elegirla de la galería
 @Composable
@@ -31,12 +35,35 @@ fun SelectorFoto(
     onQuitarFoto: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val contexto = LocalContext.current
     var sinCamara by remember { mutableStateOf(value = false) }
+    var permisoDenegado by remember { mutableStateOf(value = false) }
     val forma = RoundedCornerShape(12.dp)
 
     val camara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { tomada ->
         onResultadoCamara(tomada)
     }
+
+    val abrirCamara = {
+        try {
+            camara.launch(onPrepararCamara())
+        } catch (_: ActivityNotFoundException) {
+            onResultadoCamara(false)
+            sinCamara = true
+        }
+    }
+
+    val permisoCamaraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { concedido ->
+        if (concedido) {
+            permisoDenegado = false
+            abrirCamara()
+        } else {
+            permisoDenegado = true
+        }
+    }
+
     // El selector de fotos del sistema no necesita pedir permisos
     val galeria = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onFotoGaleria)
@@ -92,11 +119,17 @@ fun SelectorFoto(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = {
-                    try {
-                        camara.launch(onPrepararCamara())
-                    } catch (e: ActivityNotFoundException) {
-                        onResultadoCamara(false)
-                        sinCamara = true
+                    sinCamara = false
+                    val tienePermiso = ContextCompat.checkSelfPermission(
+                        contexto,
+                        Manifest.permission.CAMERA,
+                    ) == PackageManager.PERMISSION_GRANTED
+
+                    if (tienePermiso) {
+                        permisoDenegado = false
+                        abrirCamara()
+                    } else {
+                        permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
                     }
                 },
                 enabled = !procesando,
@@ -115,6 +148,14 @@ fun SelectorFoto(
                 Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Galería")
             }
+        }
+
+        if (permisoDenegado) {
+            Text(
+                "Se requiere permiso de cámara para tomar fotos",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
         }
 
         if (sinCamara) {

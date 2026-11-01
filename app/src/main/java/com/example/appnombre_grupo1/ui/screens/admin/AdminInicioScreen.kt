@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.*
@@ -52,6 +53,7 @@ fun AdminInicioScreen(
     onClientesClick: () -> Unit,
     onUsuariosClick: () -> Unit,
     onRegistrosClick: () -> Unit,
+    onArchivadosClick: () -> Unit,
     onCerrarSesion: () -> Unit,
 ) {
     Scaffold(
@@ -100,6 +102,12 @@ fun AdminInicioScreen(
                 titulo = "Registros anteriores",
                 descripcion = "Revisar los registros hechos por los técnicos",
                 onClick = onRegistrosClick,
+            )
+            OpcionAdmin(
+                icono = Icons.Default.Archive,
+                titulo = "Archivados",
+                descripcion = "Registros eliminados: solo los ven los administradores y se pueden restaurar",
+                onClick = onArchivadosClick,
             )
         }
     }

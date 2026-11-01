@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.DatosGeneralesForm
+import com.example.appnombre_grupo1.model.TipoRegistro
 import com.example.appnombre_grupo1.ui.components.SelectorDesplegable
 import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
 
@@ -40,7 +41,11 @@ fun RegistroGeneralScreen(
     onActualizarUbicacionGps: () -> Unit = {},
     onContinuarMantenimiento: () -> Unit,
     onContinuarPruebas: () -> Unit,
+    // Al editar un registro guardado: su protocolo (solo se puede continuar a ese). null = registro nuevo
+    protocoloEnEdicion: TipoRegistro? = null,
 ) {
+    val editando = protocoloEnEdicion != null
+
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
 
@@ -80,7 +85,7 @@ fun RegistroGeneralScreen(
     val codigoEquipoError = state.errores.codigoEquipo.takeIf { mostrarErrores }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Nuevo Registro de Terreno") }) },
+        topBar = { TopAppBar(title = { Text(if (editando) "Editar Registro" else "Nuevo Registro de Terreno") }) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -253,27 +258,33 @@ fun RegistroGeneralScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Seleccione el Protocolo a Realizar:", style = MaterialTheme.typography.titleSmall)
-
-            Button(
-                onClick = onContinuarMantenimiento,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-            ) {
-                Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Ir a Protocolo de Mantenimiento")
+            if (!editando) {
+                Text("Seleccione el Protocolo a Realizar:", style = MaterialTheme.typography.titleSmall)
             }
 
-            Button(
-                onClick = onContinuarPruebas,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-            ) {
-                Icon(Icons.Default.ElectricBolt, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Ir a Protocolo de Pruebas Eléctricas")
+            if (protocoloEnEdicion == null || protocoloEnEdicion == TipoRegistro.MANTENIMIENTO) {
+                Button(
+                    onClick = onContinuarMantenimiento,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                ) {
+                    Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text(if (editando) "Continuar al Mantenimiento" else "Ir a Protocolo de Mantenimiento")
+                }
+            }
+
+            if (protocoloEnEdicion == null || protocoloEnEdicion == TipoRegistro.PRUEBAS_ELECTRICAS) {
+                Button(
+                    onClick = onContinuarPruebas,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                ) {
+                    Icon(Icons.Default.ElectricBolt, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text(if (editando) "Continuar a las Pruebas Eléctricas" else "Ir a Protocolo de Pruebas Eléctricas")
+                }
             }
         }
     }

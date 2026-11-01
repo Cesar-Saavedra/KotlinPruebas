@@ -22,6 +22,12 @@ sealed class Screen(val route: String) {
     data object UsuarioForm : Screen("usuario_form_page")
     data object Registros : Screen("registros_page")
     data object RegistroDetalle : Screen("registro_detalle_page")
+    data object Archivados : Screen("archivados_page")
+
+    // Edición de un registro guardado (mismas pantallas que al crear, en modo edición)
+    data object EditarGeneral : Screen("editar_general_page")
+    data object EditarMantenimiento : Screen("editar_mantenimiento_page")
+    data object EditarPrueba : Screen("editar_prueba_page")
 
     // Ejemplo para pantallas que reciban parámetros (opcional)
     data class Detail(val itemId: String) : Screen("detail_page/{itemId}") {

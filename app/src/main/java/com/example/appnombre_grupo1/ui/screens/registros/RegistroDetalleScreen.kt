@@ -5,8 +5,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -93,13 +96,55 @@ private fun DetallePruebas(estado: PruebasElectricasState) {
     }
 }
 
+// Quién creó el registro y cada edición posterior, de la más reciente a la más antigua
+@Composable
+private fun Historial(registro: RegistroGuardado) {
+    Seccion("Historial de cambios") {
+        registro.ediciones.forEach { edicion ->
+            Dato(
+                "Editado el ${formatearFecha(edicion.fechaMillis)} por ${edicion.editorNombre} (@${edicion.editorUsername})",
+                "Cambió: ${edicion.cambios.joinToString(", ")}",
+            )
+        }
+        Dato(
+            "Creado el ${formatearFecha(registro.fechaMillis)}",
+            "por ${registro.datosGenerales.tecnico} (@${registro.tecnicoUsername})",
+        )
+    }
+}
+
+@Composable
+private fun DialogoConfirmacion(
+    titulo: String,
+    texto: String,
+    confirmar: String,
+    onConfirmar: () -> Unit,
+    onCancelar: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = { Text(titulo) },
+        text = { Text(texto) },
+        confirmButton = { TextButton(onClick = onConfirmar) { Text(confirmar) } },
+        dismissButton = { TextButton(onClick = onCancelar) { Text("Cancelar") } },
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistroDetalleScreen(
     registro: RegistroGuardado,
+    puedeEditar: Boolean,
+    puedeArchivar: Boolean,
+    puedeRestaurar: Boolean,
+    onEditarClick: () -> Unit,
+    onArchivarClick: () -> Unit,
+    onRestaurarClick: () -> Unit,
     onBackClick: () -> Unit,
 ) {
     val datos = registro.datosGenerales
+    var confirmarArchivar by remember { mutableStateOf(value = false) }
+    var confirmarRestaurar by remember { mutableStateOf(value = false) }
 
     Scaffold(
         topBar = {
@@ -108,6 +153,23 @@ fun RegistroDetalleScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
+                    }
+                },
+                actions = {
+                    if (puedeEditar) {
+                        IconButton(onClick = onEditarClick) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar registro")
+                        }
+                    }
+                    if (puedeArchivar) {
+                        IconButton(onClick = { confirmarArchivar = true }) {
+                            Icon(Icons.Default.Archive, contentDescription = "Archivar registro")
+                        }
+                    }
+                    if (puedeRestaurar) {
+                        IconButton(onClick = { confirmarRestaurar = true }) {
+                            Icon(Icons.Default.Unarchive, contentDescription = "Restaurar registro")
+                        }
                     }
                 },
             )
@@ -121,6 +183,27 @@ fun RegistroDetalleScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            registro.archivado?.let { archivo ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        "Archivado el ${formatearFecha(archivo.fechaMillis)} por ${archivo.porNombre}. " +
+                            "Los técnicos ya no ven este registro.",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
+
+            if (puedeEditar) {
+                Button(onClick = onEditarClick, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Editar registro")
+                }
+            }
+
             Seccion("Datos generales") {
                 Dato("Fecha", formatearFecha(registro.fechaMillis))
                 Dato("Técnico", "${datos.tecnico} (@${registro.tecnicoUsername})")
@@ -132,6 +215,34 @@ fun RegistroDetalleScreen(
 
             registro.mantenimiento?.let { DetalleMantenimiento(it) }
             registro.pruebas?.let { DetallePruebas(it) }
+
+            Historial(registro)
         }
+    }
+
+    if (confirmarArchivar) {
+        DialogoConfirmacion(
+            titulo = "Archivar registro",
+            texto = "El registro pasará a Archivados. Los técnicos ya no lo verán, pero podrá restaurarlo cuando quiera.",
+            confirmar = "Archivar",
+            onConfirmar = {
+                confirmarArchivar = false
+                onArchivarClick()
+            },
+            onCancelar = { confirmarArchivar = false },
+        )
+    }
+
+    if (confirmarRestaurar) {
+        DialogoConfirmacion(
+            titulo = "Restaurar registro",
+            texto = "El registro volverá a estar visible para todos los usuarios.",
+            confirmar = "Restaurar",
+            onConfirmar = {
+                confirmarRestaurar = false
+                onRestaurarClick()
+            },
+            onCancelar = { confirmarRestaurar = false },
+        )
     }
 }

@@ -1,5 +1,6 @@
 package com.example.appnombre_grupo1.model.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -26,6 +27,11 @@ data class RegistroEntity(
     val instalacion: String,
     val tipoEquipo: String,
     val codigoEquipo: String,
+    // Registros "eliminados" por un administrador: no se borran, se archivan (versión 2)
+    @ColumnInfo(defaultValue = "0") val archivado: Boolean = false,
+    val archivadoPorUsername: String? = null,
+    val archivadoPorNombre: String? = null,
+    val archivadoFechaMillis: Long? = null,
 )
 
 // Tabla "mantenimientos": detalle de un registro de tipo Mantenimiento (relación 1 a 1)
@@ -88,6 +94,29 @@ data class PruebaElectricaEntity(
     val notasTecnicas: String,
 )
 
+// Tabla "ediciones_registro": historial de cambios de cada registro (relación 1 a N, versión 2).
+// "cambios" guarda los nombres de los campos modificados separados por "|".
+@Entity(
+    tableName = "ediciones_registro",
+    foreignKeys = [
+        ForeignKey(
+            entity = RegistroEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["registroId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("registroId")],
+)
+data class EdicionRegistroEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val registroId: String,
+    val fechaMillis: Long,
+    val editorUsername: String,
+    val editorNombre: String,
+    val cambios: String,
+)
+
 // Registro con su detalle; solo uno de los dos viene informado según el tipo
 data class RegistroCompleto(
     @Embedded val registro: RegistroEntity,
@@ -95,4 +124,6 @@ data class RegistroCompleto(
     val mantenimiento: MantenimientoEntity?,
     @Relation(parentColumn = "id", entityColumn = "registroId")
     val prueba: PruebaElectricaEntity?,
+    @Relation(parentColumn = "id", entityColumn = "registroId")
+    val ediciones: List<EdicionRegistroEntity> = emptyList(),
 )
