@@ -22,6 +22,8 @@ import com.example.appnombre_grupo1.model.MantenimientoState
 fun MantenimientoScreen(
     state: MantenimientoState,
     guardando: Boolean,
+    // true al editar un registro guardado (cambia títulos y oculta la comparación)
+    editando: Boolean,
     registroAnterior: RegistroGuardado?,
     procesandoFoto: Boolean,
     onStateChange: (MantenimientoState) -> Unit,
@@ -36,7 +38,10 @@ fun MantenimientoScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mantenimiento: ${state.datosGenerales.codigoEquipo}") },
+                title = {
+                    val prefijo = if (editando) "Editar mantenimiento" else "Mantenimiento"
+                    Text("$prefijo: ${state.datosGenerales.codigoEquipo}")
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
@@ -53,10 +58,13 @@ fun MantenimientoScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            TarjetaRegistroAnterior(
-                registro = registroAnterior,
-                onVerClick = onVerRegistroAnterior,
-            )
+            // Al editar no se compara: el "registro anterior" sería el mismo que se está editando
+            if (!editando) {
+                TarjetaRegistroAnterior(
+                    registro = registroAnterior,
+                    onVerClick = onVerRegistroAnterior,
+                )
+            }
 
             Text("Inspección de Componentes", style = MaterialTheme.typography.titleMedium)
 
@@ -147,7 +155,7 @@ fun MantenimientoScreen(
                 enabled = !guardando && !procesandoFoto,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar Mantenimiento")
+                Text(if (editando) "Guardar Cambios" else "Guardar Mantenimiento")
             }
 
             OutlinedButton(
@@ -160,7 +168,7 @@ fun MantenimientoScreen(
     }
 
     if (guardando) {
-        CargandoOverlay(mensaje = "Guardando mantenimiento...")
+        CargandoOverlay(mensaje = if (editando) "Guardando cambios..." else "Guardando mantenimiento...")
     }
 }
 

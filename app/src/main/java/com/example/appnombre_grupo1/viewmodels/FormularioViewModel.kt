@@ -13,6 +13,8 @@ import com.example.appnombre_grupo1.model.RegistroGuardado
 import com.example.appnombre_grupo1.model.TipoRegistro
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.model.validation.DatosGeneralesValidator
+import com.example.appnombre_grupo1.ui.utils.Ubicacion
+import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +29,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 
+// Resultado de tocar "Guardar", para que la navegación sepa a dónde ir y qué mensaje mostrar
+enum class ResultadoGuardado { NUEVO, EDITADO, SIN_CAMBIOS }
+
+// Maneja el formulario de un registro. Se usa una instancia para crear registros nuevos y
+// otra distinta (key = "edicion") para editar registros guardados, así no se mezclan.
 class FormularioViewModel(application: Application) : AndroidViewModel(application) {
 
     private val registroRepository = container.registroRepository
@@ -39,6 +46,11 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
 
     // Técnico que está llenando el registro actual
     private var tecnico: Usuario? = null
+
+    // Modo edición: registro guardado que se está editando (null = registro nuevo) y quién lo edita
+    private val _registroEnEdicion = MutableStateFlow<RegistroGuardado?>(null)
+    val registroEnEdicion: StateFlow<RegistroGuardado?> = _registroEnEdicion.asStateFlow()
+    private var editor: Usuario? = null
 
     // Estado de cada formulario (sobrevive a la rotación de pantalla)
     private val _datosGenerales = MutableStateFlow(DatosGeneralesForm())
@@ -59,8 +71,8 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
     val guardando: StateFlow<Boolean> = _guardando.asStateFlow()
 
     // Evento que se emite una vez cuando el registro terminó de guardarse
-    private val _registroGuardado = MutableSharedFlow<Unit>()
-    val registroGuardado: SharedFlow<Unit> = _registroGuardado.asSharedFlow()
+    private val _registroGuardado = MutableSharedFlow<ResultadoGuardado>()
+    val registroGuardado: SharedFlow<ResultadoGuardado> = _registroGuardado.asSharedFlow()
 
     // Último registro de cada protocolo hecho al mismo equipo, para compararlo con el actual
     val mantenimientoAnterior: StateFlow<RegistroGuardado?> = registroAnterior(TipoRegistro.MANTENIMIENTO)
@@ -85,6 +97,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         val actual = _datosGenerales.value
         if (actual.cliente == nombreCliente) return
         actualizarDatosGenerales(actual.copy(cliente = nombreCliente, instalacion = "", tipoEquipo = ""))
+        calcularDistanciaAInstalacion()
     }
 
     // Al cambiar de instalación se limpia el equipo, que depende de ella
@@ -92,6 +105,121 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         val actual = _datosGenerales.value
         if (actual.instalacion == nombreInstalacion) return
         actualizarDatosGenerales(actual.copy(instalacion = nombreInstalacion, tipoEquipo = ""))
+        calcularDistanciaAInstalacion()
+    }
+
+    // --- Verificación GPS y Selección Automática ---
+    private val _ubicacionTecnico = MutableStateFlow<Ubicacion?>(null)
+    val ubicacionTecnico: StateFlow<Ubicacion?> = _ubicacionTecnico.asStateFlow()
+
+    private val _distanciaMetros = MutableStateFlow<Float?>(null)
+    val distanciaMetros: StateFlow<Float?> = _distanciaMetros.asStateFlow()
+
+    private val _buscandoUbicacion = MutableStateFlow(false)
+    val buscandoUbicacion: StateFlow<Boolean> = _buscandoUbicacion.asStateFlow()
+
+    private val _errorGps = MutableStateFlow<String?>(null)
+    val errorGps: StateFlow<String?> = _errorGps.asStateFlow()
+
+    // La ubicación se pide con el contexto de la aplicación (no el de la pantalla) para no retenerla en memoria
+    fun actualizarUbicacionGps() {
+        _buscandoUbicacion.value = true
+        _errorGps.value = null
+        UbicacionUtils.obtenerUbicacionActual(getApplication<Application>()) { ubicacion, error ->
+            _buscandoUbicacion.value = false
+            if (ubicacion != null) {
+                _ubicacionTecnico.value = ubicacion
+                calcularDistanciaAInstalacion()
+            } else {
+                _errorGps.value = error
+            }
+        }
+    }
+
+    fun detectarInstalacionAutomatica() {
+        _buscandoUbicacion.value = true
+        _errorGps.value = null
+        UbicacionUtils.obtenerUbicacionActual(getApplication<Application>()) { ubicacion, error ->
+            _buscandoUbicacion.value = false
+            if (ubicacion != null) {
+                _ubicacionTecnico.value = ubicacion
+                var menorDistancia = Float.MAX_VALUE
+                var clienteElegido: Cliente? = null
+                var instalacionElegida: String? = null
+
+                clientes.value.forEach { cliente ->
+                    cliente.instalaciones.forEach { inst ->
+                        if (inst.latitud != null && inst.longitud != null) {
+                            val dist = UbicacionUtils.calcularDistanciaMetros(
+                                ubicacion.latitud, ubicacion.longitud,
+                                inst.latitud, inst.longitud
+                            )
+                            if (dist < menorDistancia) {
+                                menorDistancia = dist
+                                clienteElegido = cliente
+                                instalacionElegida = inst.nombre
+                            }
+                        }
+                    }
+                }
+
+                if (clienteElegido != null && instalacionElegida != null && menorDistancia <= UbicacionUtils.RANGO_MAXIMO_METROS) {
+                    val actual = _datosGenerales.value
+                    actualizarDatosGenerales(
+                        actual.copy(
+                            cliente = clienteElegido.nombre,
+                            instalacion = instalacionElegida,
+                            tipoEquipo = ""
+                        )
+                    )
+                    _distanciaMetros.value = menorDistancia
+                } else if (clienteElegido != null) {
+                    _errorGps.value = "La instalación más cercana es '$instalacionElegida' a %.0f metros (máx 100m).".format(menorDistancia)
+                } else {
+                    _errorGps.value = "No hay instalaciones georreferenciadas registradas."
+                }
+            } else {
+                _errorGps.value = error
+            }
+        }
+    }
+
+    fun calcularDistanciaAInstalacion() {
+        val ubicacion = _ubicacionTecnico.value ?: run {
+            _distanciaMetros.value = null
+            return
+        }
+        val datos = _datosGenerales.value
+        val clienteObj = clientes.value.firstOrNull { it.nombre == datos.cliente }
+        val instObj = clienteObj?.instalaciones?.firstOrNull { it.nombre == datos.instalacion }
+
+        if (instObj?.latitud != null && instObj.longitud != null) {
+            _distanciaMetros.value = UbicacionUtils.calcularDistanciaMetros(
+                ubicacion.latitud, ubicacion.longitud,
+                instObj.latitud, instObj.longitud
+            )
+        } else {
+            _distanciaMetros.value = null
+        }
+    }
+
+    fun validarRangoGps(): Boolean {
+        val datos = _datosGenerales.value
+        val clienteObj = clientes.value.firstOrNull { it.nombre == datos.cliente }
+        val instObj = clienteObj?.instalaciones?.firstOrNull { it.nombre == datos.instalacion }
+
+        if (instObj?.latitud != null && instObj.longitud != null) {
+            val dist = _distanciaMetros.value
+            if (dist == null || dist > UbicacionUtils.RANGO_MAXIMO_METROS) {
+                _errorGps.value = if (dist != null) {
+                    "Está a %.0f metros de la instalación. Debe estar a menos de 100m para realizar pruebas.".format(dist)
+                } else {
+                    "Obtenga su ubicación GPS para verificar la cercanía a la instalación."
+                }
+                return false
+            }
+        }
+        return true
     }
 
     // Activa la visualización de errores y devuelve true si se puede continuar
@@ -109,27 +237,78 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         _pruebasElectricasState.value = nuevoEstado
     }
 
-    fun guardarMantenimiento() = guardar { tecnico ->
-        registroRepository.guardarMantenimiento(_mantenimientoState.value, tecnico)
+    fun guardarMantenimiento() {
+        val original = _registroEnEdicion.value
+        if (original == null) {
+            val tecnicoActual = tecnico ?: return
+            guardar {
+                registroRepository.guardarMantenimiento(_mantenimientoState.value, tecnicoActual)
+                ResultadoGuardado.NUEVO
+            }
+        } else {
+            val editorActual = editor ?: return
+            guardar {
+                val nuevo = _mantenimientoState.value
+                val huboCambios = registroRepository.actualizarMantenimiento(original, nuevo, editorActual)
+                // Si se reemplazó la foto, la anterior ya no la usa ningún registro
+                original.mantenimiento?.fotoPath
+                    ?.takeIf { huboCambios && it != nuevo.fotoPath }
+                    ?.let { eliminarFotoSiNoSeUsa(it) }
+                terminarEdicion(huboCambios)
+            }
+        }
     }
 
-    fun guardarPruebas() = guardar { tecnico ->
-        registroRepository.guardarPruebas(_pruebasElectricasState.value, tecnico)
+    fun guardarPruebas() {
+        val original = _registroEnEdicion.value
+        if (original == null) {
+            val tecnicoActual = tecnico ?: return
+            guardar {
+                registroRepository.guardarPruebas(_pruebasElectricasState.value, tecnicoActual)
+                ResultadoGuardado.NUEVO
+            }
+        } else {
+            val editorActual = editor ?: return
+            guardar {
+                val huboCambios = registroRepository.actualizarPruebas(original, _pruebasElectricasState.value, editorActual)
+                terminarEdicion(huboCambios)
+            }
+        }
     }
+
+    // El modo edición se mantiene hasta salir de la pantalla, así el título no cambia mientras se navega
+    private fun terminarEdicion(huboCambios: Boolean): ResultadoGuardado =
+        if (huboCambios) ResultadoGuardado.EDITADO else ResultadoGuardado.SIN_CAMBIOS
 
     // Guarda en una corrutina mostrando la carga y avisa a la vista cuando termina
-    private fun guardar(accion: suspend (Usuario) -> Unit) {
-        val tecnicoActual = tecnico ?: return
+    private fun guardar(accion: suspend () -> ResultadoGuardado) {
         if (_guardando.value) return
 
         viewModelScope.launch {
             _guardando.value = true
             // Simula el tiempo que tomaría enviar el registro a un servidor
             delay(TIEMPO_GUARDADO_MS)
-            accion(tecnicoActual)
+            val resultado = accion()
             _guardando.value = false
-            _registroGuardado.emit(Unit)
+            _registroGuardado.emit(resultado)
         }
+    }
+
+    // Carga un registro guardado en el formulario para corregirlo.
+    // El técnico original y la fecha de creación no cambian; "usuario" queda como editor.
+    fun iniciarEdicion(registro: RegistroGuardado, usuario: Usuario) {
+        // Si quedó una foto de una edición anterior que no se guardó, se borra
+        _mantenimientoState.value.fotoPath?.let { eliminarFotoSiNoSeUsa(it) }
+        _registroEnEdicion.value = registro
+        editor = usuario
+        tecnico = null
+        val datos = validator.validate(registro.datosGenerales)
+        _datosGenerales.value = datos
+        _mostrarErrores.value = false
+        _mantenimientoState.value = registro.mantenimiento?.copy(datosGenerales = datos)
+            ?: MantenimientoState(datosGenerales = datos)
+        _pruebasElectricasState.value = registro.pruebas?.copy(datosGenerales = datos)
+            ?: PruebasElectricasState(datosGenerales = datos)
     }
 
     // Crea el archivo donde la cámara guardará la foto y devuelve su Uri
@@ -161,11 +340,18 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         asignarFoto(null)
     }
 
-    // Reemplaza la foto del mantenimiento y borra el archivo de la anterior
+    // Reemplaza la foto del mantenimiento. El archivo anterior se borra solo si ningún
+    // registro guardado lo usa (al editar, la foto original se conserva hasta guardar).
     private fun asignarFoto(path: String?) {
         val anterior = _mantenimientoState.value.fotoPath
-        if (anterior != null && anterior != path) fotoRepository.eliminar(anterior)
         _mantenimientoState.update { it.copy(fotoPath = path) }
+        if (anterior != null && anterior != path) eliminarFotoSiNoSeUsa(anterior)
+    }
+
+    private fun eliminarFotoSiNoSeUsa(path: String) {
+        viewModelScope.launch {
+            if (!registroRepository.fotoEnUso(path)) fotoRepository.eliminar(path)
+        }
     }
 
     private fun registroAnterior(tipo: TipoRegistro): StateFlow<RegistroGuardado?> =
@@ -183,12 +369,15 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
     // Comienza un registro nuevo con el técnico que tiene la sesión iniciada
     fun reiniciarRegistro(usuario: Usuario) {
         // Borra la foto del registro anterior si nunca llegó a guardarse
-        _mantenimientoState.value.fotoPath?.let { foto ->
-            viewModelScope.launch {
-                if (!registroRepository.fotoEnUso(foto)) fotoRepository.eliminar(foto)
-            }
-        }
+        _mantenimientoState.value.fotoPath?.let { eliminarFotoSiNoSeUsa(it) }
+        _registroEnEdicion.value = null
+        editor = null
         tecnico = usuario
+        // La verificación GPS se hace de nuevo en cada registro: no se reutiliza la ubicación
+        // de un registro anterior (podría ser de otro lugar u otra hora)
+        _ubicacionTecnico.value = null
+        _distanciaMetros.value = null
+        _errorGps.value = null
         _datosGenerales.value = DatosGeneralesForm(tecnico = usuario.nombre)
         _mostrarErrores.value = false
         _mantenimientoState.value = MantenimientoState(datosGenerales = _datosGenerales.value)

@@ -38,19 +38,31 @@ abstract class ClienteDao {
     @Query("DELETE FROM clientes WHERE id = :clienteId")
     abstract suspend fun eliminarFilaCliente(clienteId: String)
 
+    data class DatosInstalacionGuardar(
+        val nombre: String,
+        val tipos: List<String>,
+        val latitud: Double? = null,
+        val longitud: Double? = null,
+    )
+
     // Guarda el cliente completo en una sola transacción: si algo falla, no queda nada a medias.
     // Las instalaciones y equipos se reemplazan por los del formulario.
     @Transaction
     open suspend fun guardarConInstalaciones(
         cliente: ClienteEntity,
-        instalaciones: List<Pair<String, List<String>>>,
+        instalaciones: List<DatosInstalacionGuardar>,
     ) {
         guardarCliente(cliente)
         eliminarTiposEquipoDeCliente(cliente.id)
         eliminarInstalacionesDeCliente(cliente.id)
-        instalaciones.forEach { (nombreInstalacion, tipos) ->
+        instalaciones.forEach { (nombreInstalacion, tipos, latitud, longitud) ->
             val instalacionId = insertarInstalacion(
-                InstalacionEntity(clienteId = cliente.id, nombre = nombreInstalacion),
+                InstalacionEntity(
+                    clienteId = cliente.id,
+                    nombre = nombreInstalacion,
+                    latitud = latitud,
+                    longitud = longitud,
+                ),
             )
             insertarTiposEquipo(tipos.map { TipoEquipoEntity(instalacionId = instalacionId, nombre = it) })
         }

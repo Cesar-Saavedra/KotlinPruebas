@@ -7,6 +7,7 @@ import com.example.appnombre_grupo1.di.container
 import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.ClienteForm
 import com.example.appnombre_grupo1.model.Instalacion
+import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -104,11 +105,38 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun actualizarCoordenadasInstalacion(instalacionNombre: String, latitud: Double?, longitud: Double?) {
+        _form.update { form ->
+            form.copy(
+                instalaciones = form.instalaciones.map { inst ->
+                    if (inst.nombre == instalacionNombre) {
+                        inst.copy(latitud = latitud, longitud = longitud)
+                    } else {
+                        inst
+                    }
+                },
+            )
+        }
+    }
+
+    // Usa el contexto de la aplicación para no retener la pantalla en memoria
+    fun capturarUbicacionActualInstalacion(instalacionNombre: String) {
+        UbicacionUtils.obtenerUbicacionActual(getApplication<Application>()) { ubicacion, error ->
+            if (ubicacion != null) {
+                actualizarCoordenadasInstalacion(instalacionNombre, ubicacion.latitud, ubicacion.longitud)
+            } else if (error != null) {
+                _form.update { it.copy(error = error) }
+            }
+        }
+    }
+
     // Devuelve true si el cliente se guardó correctamente
     fun guardar(): Boolean {
         val form = _form.value
         val nombre = form.nombre.trim()
         val instalacionSinEquipos = form.instalaciones.firstOrNull { it.tiposEquipo.isEmpty() }
+        // Las coordenadas son opcionales, pero si se ingresan deben venir las dos y ser válidas
+        val instalacionCoordenadaInvalida = form.instalaciones.firstOrNull { !coordenadasValidas(it) }
         val error = when {
             nombre.isEmpty() -> "Ingrese el nombre del cliente"
             clientes.value.any { it.id != form.id && it.nombre.equals(nombre, ignoreCase = true) } ->
@@ -116,6 +144,8 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
             form.instalaciones.isEmpty() -> "Agregue al menos una instalación"
             instalacionSinEquipos != null ->
                 "Agregue al menos un tipo de equipo a ${instalacionSinEquipos.nombre}"
+            instalacionCoordenadaInvalida != null ->
+                "Revise la latitud y longitud de ${instalacionCoordenadaInvalida.nombre}"
             else -> null
         }
         if (error != null) {
@@ -139,5 +169,12 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
     fun eliminar() {
         val id = _form.value.id ?: return
         viewModelScope.launch { repository.eliminar(id) }
+    }
+
+    private fun coordenadasValidas(instalacion: Instalacion): Boolean {
+        val lat = instalacion.latitud
+        val lon = instalacion.longitud
+        if (lat == null && lon == null) return true
+        return lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0
     }
 }

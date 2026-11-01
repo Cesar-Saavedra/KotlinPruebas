@@ -35,6 +35,8 @@ data class InstalacionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val clienteId: String,
     val nombre: String,
+    val latitud: Double? = null,
+    val longitud: Double? = null,
 )
 
 // Tabla "tipos_equipo": cada fila pertenece a una instalación

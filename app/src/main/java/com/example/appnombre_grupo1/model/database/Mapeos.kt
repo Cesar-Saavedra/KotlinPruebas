@@ -1,13 +1,16 @@
 package com.example.appnombre_grupo1.model.database
 
+import com.example.appnombre_grupo1.model.ArchivoRegistro
 import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.DatosGeneralesForm
+import com.example.appnombre_grupo1.model.EdicionRegistro
 import com.example.appnombre_grupo1.model.Instalacion
 import com.example.appnombre_grupo1.model.MantenimientoState
 import com.example.appnombre_grupo1.model.PruebasElectricasState
 import com.example.appnombre_grupo1.model.RegistroGuardado
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.model.database.entity.ClienteConInstalaciones
+import com.example.appnombre_grupo1.model.database.entity.EdicionRegistroEntity
 import com.example.appnombre_grupo1.model.database.entity.MantenimientoEntity
 import com.example.appnombre_grupo1.model.database.entity.PruebaElectricaEntity
 import com.example.appnombre_grupo1.model.database.entity.RegistroCompleto
@@ -29,6 +32,8 @@ fun ClienteConInstalaciones.toModel() = Cliente(
             Instalacion(
                 nombre = conEquipos.instalacion.nombre,
                 tiposEquipo = conEquipos.tiposEquipo.sortedBy { it.id }.map { it.nombre },
+                latitud = conEquipos.instalacion.latitud,
+                longitud = conEquipos.instalacion.longitud,
             )
         },
 )
@@ -48,8 +53,36 @@ fun RegistroCompleto.toModel(): RegistroGuardado {
         tecnicoUsername = registro.tecnicoUsername,
         mantenimiento = mantenimiento?.toModel(datos),
         pruebas = prueba?.toModel(datos),
+        ediciones = ediciones.sortedByDescending { it.fechaMillis }.map { it.toModel() },
+        archivado = if (registro.archivado) {
+            ArchivoRegistro(
+                fechaMillis = registro.archivadoFechaMillis ?: 0L,
+                porUsername = registro.archivadoPorUsername.orEmpty(),
+                porNombre = registro.archivadoPorNombre.orEmpty(),
+            )
+        } else {
+            null
+        },
     )
 }
+
+// Los nombres de los campos modificados se guardan en una sola columna separados por "|"
+private const val SEPARADOR_CAMBIOS = "|"
+
+private fun EdicionRegistroEntity.toModel() = EdicionRegistro(
+    fechaMillis = fechaMillis,
+    editorUsername = editorUsername,
+    editorNombre = editorNombre,
+    cambios = cambios.split(SEPARADOR_CAMBIOS).filter { it.isNotBlank() },
+)
+
+fun EdicionRegistro.toEntity(registroId: String) = EdicionRegistroEntity(
+    registroId = registroId,
+    fechaMillis = fechaMillis,
+    editorUsername = editorUsername,
+    editorNombre = editorNombre,
+    cambios = cambios.joinToString(SEPARADOR_CAMBIOS),
+)
 
 fun RegistroGuardado.toEntity(): RegistroCompleto {
     val datos = datosGenerales
@@ -64,6 +97,10 @@ fun RegistroGuardado.toEntity(): RegistroCompleto {
             instalacion = datos.instalacion,
             tipoEquipo = datos.tipoEquipo,
             codigoEquipo = datos.codigoEquipo,
+            archivado = archivado != null,
+            archivadoPorUsername = archivado?.porUsername,
+            archivadoPorNombre = archivado?.porNombre,
+            archivadoFechaMillis = archivado?.fechaMillis,
         ),
         mantenimiento = mantenimiento?.toEntity(id),
         prueba = pruebas?.toEntity(id),

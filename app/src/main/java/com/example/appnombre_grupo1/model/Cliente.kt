@@ -4,6 +4,8 @@ package com.example.appnombre_grupo1.model
 data class Instalacion(
     val nombre: String = "",
     val tiposEquipo: List<String> = emptyList(),
+    val latitud: Double? = null,
+    val longitud: Double? = null,
 )
 
 data class Cliente(

@@ -2,10 +2,13 @@ package com.example.appnombre_grupo1.model.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.appnombre_grupo1.model.database.dao.ClienteDao
 import com.example.appnombre_grupo1.model.database.dao.RegistroDao
 import com.example.appnombre_grupo1.model.database.dao.UsuarioDao
 import com.example.appnombre_grupo1.model.database.entity.ClienteEntity
+import com.example.appnombre_grupo1.model.database.entity.EdicionRegistroEntity
 import com.example.appnombre_grupo1.model.database.entity.InstalacionEntity
 import com.example.appnombre_grupo1.model.database.entity.MantenimientoEntity
 import com.example.appnombre_grupo1.model.database.entity.PruebaElectricaEntity
@@ -24,8 +27,9 @@ import com.example.appnombre_grupo1.model.database.entity.UsuarioEntity
         RegistroEntity::class,
         MantenimientoEntity::class,
         PruebaElectricaEntity::class,
+        EdicionRegistroEntity::class,
     ],
-    version = 1,
+    version = 3,
     exportSchema = false,
 )
 abstract class InduztekDatabase : RoomDatabase() {
@@ -35,5 +39,39 @@ abstract class InduztekDatabase : RoomDatabase() {
 
     companion object {
         const val NOMBRE = "induztek.db"
+
+        // Versión 1 → 2: registros archivados e historial de ediciones.
+        // Agrega columnas y una tabla sin borrar los datos que ya estaban guardados.
+        val MIGRACION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE registros ADD COLUMN archivado INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE registros ADD COLUMN archivadoPorUsername TEXT")
+                db.execSQL("ALTER TABLE registros ADD COLUMN archivadoPorNombre TEXT")
+                db.execSQL("ALTER TABLE registros ADD COLUMN archivadoFechaMillis INTEGER")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `ediciones_registro` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`registroId` TEXT NOT NULL, " +
+                        "`fechaMillis` INTEGER NOT NULL, " +
+                        "`editorUsername` TEXT NOT NULL, " +
+                        "`editorNombre` TEXT NOT NULL, " +
+                        "`cambios` TEXT NOT NULL, " +
+                        "FOREIGN KEY(`registroId`) REFERENCES `registros`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_ediciones_registro_registroId` " +
+                        "ON `ediciones_registro` (`registroId`)",
+                )
+            }
+        }
+
+        // Versión 2 → 3: coordenadas GPS de cada instalación (opcionales, por eso aceptan NULL)
+        val MIGRACION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE instalaciones ADD COLUMN latitud REAL")
+                db.execSQL("ALTER TABLE instalaciones ADD COLUMN longitud REAL")
+            }
+        }
     }
 }

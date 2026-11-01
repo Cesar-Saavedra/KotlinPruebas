@@ -26,6 +26,8 @@ import com.example.appnombre_grupo1.model.VeredictoPrueba
 fun PruebasElectricasScreen(
     state: PruebasElectricasState,
     guardando: Boolean,
+    // true al editar un registro guardado (cambia títulos y oculta la comparación)
+    editando: Boolean,
     registroAnterior: RegistroGuardado?,
     onStateChange: (PruebasElectricasState) -> Unit,
     onVerRegistroAnterior: (RegistroGuardado) -> Unit,
@@ -37,7 +39,7 @@ fun PruebasElectricasScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Protocolo de Pruebas Eléctricas") },
+                title = { Text(if (editando) "Editar Pruebas Eléctricas" else "Protocolo de Pruebas Eléctricas") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -57,10 +59,13 @@ fun PruebasElectricasScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TarjetaRegistroAnterior(
-                registro = registroAnterior,
-                onVerClick = onVerRegistroAnterior,
-            )
+            // Al editar no se compara: el "registro anterior" sería el mismo que se está editando
+            if (!editando) {
+                TarjetaRegistroAnterior(
+                    registro = registroAnterior,
+                    onVerClick = onVerRegistroAnterior,
+                )
+            }
 
             Text("1. Datos del Equipo", style = MaterialTheme.typography.titleMedium)
 
@@ -155,7 +160,7 @@ fun PruebasElectricasScreen(
                 enabled = !guardando,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar Protocolo de Prueba")
+                Text(if (editando) "Guardar Cambios" else "Guardar Protocolo de Prueba")
             }
 
             // Botón secundario para regresar
@@ -169,6 +174,6 @@ fun PruebasElectricasScreen(
     }
 
     if (guardando) {
-        CargandoOverlay(mensaje = "Guardando prueba...")
+        CargandoOverlay(mensaje = if (editando) "Guardando cambios..." else "Guardando prueba...")
     }
 }
