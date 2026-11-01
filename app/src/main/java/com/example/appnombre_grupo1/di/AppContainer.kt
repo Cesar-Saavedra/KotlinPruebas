@@ -27,6 +27,8 @@ class AppContainer(context: Context) {
     // Una sola instancia de la base de datos para toda la app
     val database: InduztekDatabase by lazy {
         Room.databaseBuilder(context, InduztekDatabase::class.java, InduztekDatabase.NOMBRE)
+            // Actualiza la base de datos de los teléfonos que tenían la versión anterior
+            .addMigrations(InduztekDatabase.MIGRACION_1_2)
             .addCallback(
                 object : RoomDatabase.Callback() {
                     // Solo se ejecuta la primera vez, cuando se crea el archivo de la base de datos

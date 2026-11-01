@@ -22,6 +22,9 @@ fun RegistrosScreen(
     registros: List<RegistroGuardado>,
     onRegistroClick: (RegistroGuardado) -> Unit,
     onBackClick: () -> Unit,
+    // La misma pantalla muestra los registros activos y los archivados
+    titulo: String = "Registros anteriores",
+    textoVacio: String = "No hay registros guardados",
 ) {
     // Filtro por tipo de protocolo; null muestra todos
     var filtro by remember { mutableStateOf<TipoRegistro?>(null) }
@@ -30,7 +33,7 @@ fun RegistrosScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registros anteriores") },
+                title = { Text(titulo) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
@@ -67,7 +70,7 @@ fun RegistrosScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("No hay registros guardados")
+                    Text(textoVacio)
                 }
             } else {
                 LazyColumn(
@@ -80,10 +83,25 @@ fun RegistrosScreen(
                             ListItem(
                                 headlineContent = { Text("${datos.cliente} · ${datos.instalacion}") },
                                 supportingContent = {
-                                    Text(
-                                        "${registro.tipo.label} · ${datos.tipoEquipo} ${datos.codigoEquipo}\n" +
-                                            "${datos.tecnico} · ${formatearFecha(registro.fechaMillis)}",
-                                    )
+                                    Column {
+                                        Text(
+                                            "${registro.tipo.label} · ${datos.tipoEquipo} ${datos.codigoEquipo}\n" +
+                                                "${datos.tecnico} · ${formatearFecha(registro.fechaMillis)}",
+                                        )
+                                        // Aviso de la última edición o del archivado
+                                        val aviso = registro.archivado?.let {
+                                            "Archivado el ${formatearFecha(it.fechaMillis)} por ${it.porNombre}"
+                                        } ?: registro.ediciones.firstOrNull()?.let {
+                                            "Editado el ${formatearFecha(it.fechaMillis)} por ${it.editorNombre}"
+                                        }
+                                        aviso?.let {
+                                            Text(
+                                                it,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.tertiary,
+                                            )
+                                        }
+                                    }
                                 },
                                 leadingContent = {
                                     Icon(

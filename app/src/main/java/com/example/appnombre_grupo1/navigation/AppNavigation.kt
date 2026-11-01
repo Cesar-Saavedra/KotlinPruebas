@@ -9,6 +9,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,8 +41,10 @@ import com.example.appnombre_grupo1.viewmodels.ClientesViewModel
 import com.example.appnombre_grupo1.viewmodels.FormularioViewModel
 import com.example.appnombre_grupo1.viewmodels.MainViewModel
 import com.example.appnombre_grupo1.viewmodels.RegistrosViewModel
+import com.example.appnombre_grupo1.viewmodels.ResultadoGuardado
 import com.example.appnombre_grupo1.viewmodels.UsuariosViewModel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 // Pantalla de inicio que corresponde a cada rol
 private fun inicioSegunRol(usuario: Usuario): Screen =
@@ -55,6 +58,9 @@ fun AppNavigation(
     mainViewModel: MainViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     formularioViewModel: FormularioViewModel = viewModel(),
+    // Segunda instancia del mismo ViewModel, solo para editar registros guardados,
+    // así editar no borra un registro nuevo que se esté llenando
+    edicionViewModel: FormularioViewModel = viewModel(key = "edicion"),
     clientesViewModel: ClientesViewModel = viewModel(),
     usuariosViewModel: UsuariosViewModel = viewModel(),
     registrosViewModel: RegistrosViewModel = viewModel(),
@@ -109,13 +115,26 @@ fun AppNavigation(
         }
     }
 
-    // Cuando termina de guardarse un registro: vuelve al inicio y muestra el mensaje
+    // Cuando termina de guardarse un registro nuevo: vuelve al inicio y muestra el mensaje
     LaunchedEffect(Unit) {
         formularioViewModel.registroGuardado.collect {
             mainViewModel.navigateTo(Screen.Form, popUpToRoute = Screen.Form, inclusive = true)
             snackbarHostState.showSnackbar("Registro guardado")
         }
     }
+
+    // Cuando termina de guardarse una edición: vuelve al detalle del registro (ya actualizado)
+    LaunchedEffect(Unit) {
+        edicionViewModel.registroGuardado.collect { resultado ->
+            mainViewModel.navigateTo(Screen.RegistroDetalle, popUpToRoute = Screen.RegistroDetalle, inclusive = true)
+            snackbarHostState.showSnackbar(
+                if (resultado == ResultadoGuardado.EDITADO) "Cambios guardados" else "No se detectaron cambios",
+            )
+        }
+    }
+
+    // Para mostrar mensajes desde los botones (ej. "Registro archivado")
+    val scope = rememberCoroutineScope()
 
     // Abre el detalle de un registro guardado (lo usan el administrador y el técnico)
     val verRegistro: (RegistroGuardado) -> Unit = { registro ->
@@ -161,64 +180,50 @@ fun AppNavigation(
         }
 
         composable(Screen.GeneralForm.route) {
-            val datosGenerales by formularioViewModel.datosGenerales.collectAsState()
-            val clientes by formularioViewModel.clientes.collectAsState()
-            val mostrarErrores by formularioViewModel.mostrarErrores.collectAsState()
-
-            RegistroGeneralScreen(
-                state = datosGenerales,
-                clientes = clientes,
-                mostrarErrores = mostrarErrores,
-                onStateChange = formularioViewModel::actualizarDatosGenerales,
-                onClienteChange = formularioViewModel::seleccionarCliente,
-                onInstalacionChange = formularioViewModel::seleccionarInstalacion,
-                onContinuarMantenimiento = {
-                    if (formularioViewModel.validarDatosGenerales()) {
-                        mainViewModel.navigateTo(Screen.Maintenance)
-                    }
-                },
-                onContinuarPruebas = {
-                    if (formularioViewModel.validarDatosGenerales()) {
-                        mainViewModel.navigateTo(Screen.Test)
-                    }
-                },
+            FormularioGeneral(
+                viewModel = formularioViewModel,
+                onContinuarMantenimiento = { mainViewModel.navigateTo(Screen.Maintenance) },
+                onContinuarPruebas = { mainViewModel.navigateTo(Screen.Test) },
             )
         }
 
         composable(Screen.Maintenance.route) {
-            val mantenimientoState by formularioViewModel.mantenimientoState.collectAsState()
-            val guardando by formularioViewModel.guardando.collectAsState()
-            val registroAnterior by formularioViewModel.mantenimientoAnterior.collectAsState()
-            val procesandoFoto by formularioViewModel.procesandoFoto.collectAsState()
-
-            MantenimientoScreen(
-                state = mantenimientoState,
-                guardando = guardando,
-                registroAnterior = registroAnterior,
-                procesandoFoto = procesandoFoto,
-                onStateChange = formularioViewModel::actualizarMantenimiento,
+            FormularioMantenimiento(
+                viewModel = formularioViewModel,
                 onVerRegistroAnterior = verRegistro,
-                onPrepararCamara = formularioViewModel::prepararFotoCamara,
-                onResultadoCamara = formularioViewModel::resultadoCamara,
-                onFotoGaleria = formularioViewModel::fotoDeGaleria,
-                onQuitarFoto = formularioViewModel::quitarFoto,
-                onSaveClick = formularioViewModel::guardarMantenimiento,
                 onBackClick = mainViewModel::navigateBack,
             )
         }
 
         composable(Screen.Test.route) {
-            val pruebasState by formularioViewModel.pruebasElectricasState.collectAsState()
-            val guardando by formularioViewModel.guardando.collectAsState()
-            val registroAnterior by formularioViewModel.pruebaAnterior.collectAsState()
-
-            PruebasElectricasScreen(
-                state = pruebasState,
-                guardando = guardando,
-                registroAnterior = registroAnterior,
-                onStateChange = formularioViewModel::actualizarPruebas,
+            FormularioPruebas(
+                viewModel = formularioViewModel,
                 onVerRegistroAnterior = verRegistro,
-                onSaveClick = formularioViewModel::guardarPruebas,
+                onBackClick = mainViewModel::navigateBack,
+            )
+        }
+
+        // Edición de un registro guardado (técnicos y administradores)
+        composable(Screen.EditarGeneral.route) {
+            FormularioGeneral(
+                viewModel = edicionViewModel,
+                onContinuarMantenimiento = { mainViewModel.navigateTo(Screen.EditarMantenimiento) },
+                onContinuarPruebas = { mainViewModel.navigateTo(Screen.EditarPrueba) },
+            )
+        }
+
+        composable(Screen.EditarMantenimiento.route) {
+            FormularioMantenimiento(
+                viewModel = edicionViewModel,
+                onVerRegistroAnterior = verRegistro,
+                onBackClick = mainViewModel::navigateBack,
+            )
+        }
+
+        composable(Screen.EditarPrueba.route) {
+            FormularioPruebas(
+                viewModel = edicionViewModel,
+                onVerRegistroAnterior = verRegistro,
                 onBackClick = mainViewModel::navigateBack,
             )
         }
@@ -232,6 +237,7 @@ fun AppNavigation(
                 onClientesClick = { mainViewModel.navigateTo(Screen.Clientes) },
                 onUsuariosClick = { mainViewModel.navigateTo(Screen.Usuarios) },
                 onRegistrosClick = { mainViewModel.navigateTo(Screen.Registros) },
+                onArchivadosClick = { mainViewModel.navigateTo(Screen.Archivados) },
                 onCerrarSesion = cerrarSesion,
             )
         }
@@ -324,12 +330,46 @@ fun AppNavigation(
             )
         }
 
+        // Solo los administradores llegan aquí (desde su panel)
+        composable(Screen.Archivados.route) {
+            val archivados by registrosViewModel.archivados.collectAsState()
+
+            RegistrosScreen(
+                registros = archivados,
+                onRegistroClick = verRegistro,
+                onBackClick = mainViewModel::navigateBack,
+                titulo = "Archivados",
+                textoVacio = "No hay registros archivados",
+            )
+        }
+
         composable(Screen.RegistroDetalle.route) {
             val registro by registrosViewModel.registroSeleccionado.collectAsState()
+            val usuario = usuarioActual ?: return@composable
+            val esAdmin = usuario.rol == RolUsuario.ADMINISTRADOR
 
-            registro?.let {
+            registro?.let { actual ->
+                val archivado = actual.archivado != null
                 RegistroDetalleScreen(
-                    registro = it,
+                    registro = actual,
+                    // Cualquier usuario puede editar un registro activo; los archivados no se editan
+                    puedeEditar = !archivado,
+                    puedeArchivar = esAdmin && !archivado,
+                    puedeRestaurar = esAdmin && archivado,
+                    onEditarClick = {
+                        edicionViewModel.iniciarEdicion(actual, usuario)
+                        mainViewModel.navigateTo(Screen.EditarGeneral)
+                    },
+                    onArchivarClick = {
+                        registrosViewModel.archivar(usuario)
+                        mainViewModel.navigateBack()
+                        scope.launch { snackbarHostState.showSnackbar("Registro archivado") }
+                    },
+                    onRestaurarClick = {
+                        registrosViewModel.restaurar()
+                        mainViewModel.navigateBack()
+                        scope.launch { snackbarHostState.showSnackbar("Registro restaurado") }
+                    },
                     onBackClick = mainViewModel::navigateBack,
                 )
             }
@@ -348,4 +388,87 @@ fun AppNavigation(
             SettingsScreen(viewModel = mainViewModel)
         }
     }
+}
+
+// Las pantallas del registro se usan con dos ViewModels: el de registros nuevos y el de edición.
+// Estas funciones conectan cada pantalla con el ViewModel que reciben.
+
+@Composable
+private fun FormularioGeneral(
+    viewModel: FormularioViewModel,
+    onContinuarMantenimiento: () -> Unit,
+    onContinuarPruebas: () -> Unit,
+) {
+    val datosGenerales by viewModel.datosGenerales.collectAsState()
+    val clientes by viewModel.clientes.collectAsState()
+    val mostrarErrores by viewModel.mostrarErrores.collectAsState()
+    val registroEnEdicion by viewModel.registroEnEdicion.collectAsState()
+
+    RegistroGeneralScreen(
+        state = datosGenerales,
+        clientes = clientes,
+        mostrarErrores = mostrarErrores,
+        onStateChange = viewModel::actualizarDatosGenerales,
+        onClienteChange = viewModel::seleccionarCliente,
+        onInstalacionChange = viewModel::seleccionarInstalacion,
+        onContinuarMantenimiento = {
+            if (viewModel.validarDatosGenerales()) onContinuarMantenimiento()
+        },
+        onContinuarPruebas = {
+            if (viewModel.validarDatosGenerales()) onContinuarPruebas()
+        },
+        protocoloEnEdicion = registroEnEdicion?.tipo,
+    )
+}
+
+@Composable
+private fun FormularioMantenimiento(
+    viewModel: FormularioViewModel,
+    onVerRegistroAnterior: (RegistroGuardado) -> Unit,
+    onBackClick: () -> Unit,
+) {
+    val mantenimientoState by viewModel.mantenimientoState.collectAsState()
+    val guardando by viewModel.guardando.collectAsState()
+    val registroAnterior by viewModel.mantenimientoAnterior.collectAsState()
+    val procesandoFoto by viewModel.procesandoFoto.collectAsState()
+    val registroEnEdicion by viewModel.registroEnEdicion.collectAsState()
+
+    MantenimientoScreen(
+        state = mantenimientoState,
+        guardando = guardando,
+        editando = registroEnEdicion != null,
+        registroAnterior = registroAnterior,
+        procesandoFoto = procesandoFoto,
+        onStateChange = viewModel::actualizarMantenimiento,
+        onVerRegistroAnterior = onVerRegistroAnterior,
+        onPrepararCamara = viewModel::prepararFotoCamara,
+        onResultadoCamara = viewModel::resultadoCamara,
+        onFotoGaleria = viewModel::fotoDeGaleria,
+        onQuitarFoto = viewModel::quitarFoto,
+        onSaveClick = viewModel::guardarMantenimiento,
+        onBackClick = onBackClick,
+    )
+}
+
+@Composable
+private fun FormularioPruebas(
+    viewModel: FormularioViewModel,
+    onVerRegistroAnterior: (RegistroGuardado) -> Unit,
+    onBackClick: () -> Unit,
+) {
+    val pruebasState by viewModel.pruebasElectricasState.collectAsState()
+    val guardando by viewModel.guardando.collectAsState()
+    val registroAnterior by viewModel.pruebaAnterior.collectAsState()
+    val registroEnEdicion by viewModel.registroEnEdicion.collectAsState()
+
+    PruebasElectricasScreen(
+        state = pruebasState,
+        guardando = guardando,
+        editando = registroEnEdicion != null,
+        registroAnterior = registroAnterior,
+        onStateChange = viewModel::actualizarPruebas,
+        onVerRegistroAnterior = onVerRegistroAnterior,
+        onSaveClick = viewModel::guardarPruebas,
+        onBackClick = onBackClick,
+    )
 }
