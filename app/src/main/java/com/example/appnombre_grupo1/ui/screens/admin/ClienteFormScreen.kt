@@ -176,6 +176,33 @@ fun ClienteFormScreen(
 ) {
     var confirmarEliminar by remember { mutableStateOf(value = false) }
     val esNuevo = state.id == null
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    var callbackGpsPendiente by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val launcherPermisoUbicacion = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permisos ->
+        val concedido = permisos[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permisos[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (concedido) {
+            callbackGpsPendiente?.invoke()
+        }
+        callbackGpsPendiente = null
+    }
+
+    fun ejecutarConPermisoGps(accion: () -> Unit) {
+        if (com.example.appnombre_grupo1.ui.utils.UbicacionUtils.tienePermisoUbicacion(context)) {
+            accion()
+        } else {
+            callbackGpsPendiente = accion
+            launcherPermisoUbicacion.launch(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -231,7 +258,7 @@ fun ClienteFormScreen(
                     onQuitarTipoEquipo = { onQuitarTipoEquipo(instalacion.nombre, it) },
                     onQuitarInstalacion = { onQuitarInstalacion(instalacion.nombre) },
                     onCoordenadasChange = { lat, lon -> onCoordenadasChange(instalacion.nombre, lat, lon) },
-                    onCapturarGps = { onCapturarGps(instalacion.nombre) },
+                    onCapturarGps = { ejecutarConPermisoGps { onCapturarGps(instalacion.nombre) } },
                 )
             }
 

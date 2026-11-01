@@ -1,11 +1,14 @@
 package com.example.appnombre_grupo1.ui.utils
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import androidx.core.content.ContextCompat
 
 data class Ubicacion(
     val latitud: Double,
@@ -16,6 +19,15 @@ object UbicacionUtils {
 
     // Rango máximo permitido en metros (100 metros)
     const val RANGO_MAXIMO_METROS = 100.0f
+
+    /**
+     * Verifica si la aplicación tiene concedidos los permisos de ubicación en runtime.
+     */
+    fun tienePermisoUbicacion(context: Context): Boolean {
+        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        return fine || coarse
+    }
 
     /**
      * Calcula la distancia geodésica en metros entre dos coordenadas (WGS84).

@@ -42,6 +42,33 @@ fun RegistroGeneralScreen(
     onContinuarPruebas: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+
+    var callbackGpsPendiente by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val launcherPermisoUbicacion = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permisos ->
+        val concedido = permisos[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permisos[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (concedido) {
+            callbackGpsPendiente?.invoke()
+        }
+        callbackGpsPendiente = null
+    }
+
+    fun ejecutarConPermisoGps(accion: () -> Unit) {
+        if (UbicacionUtils.tienePermisoUbicacion(context)) {
+            accion()
+        } else {
+            callbackGpsPendiente = accion
+            launcherPermisoUbicacion.launch(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
 
     val clienteSeleccionado = clientes.firstOrNull { it.nombre == state.cliente }
     val instalacionSeleccionada = clienteSeleccionado?.instalaciones?.firstOrNull { it.nombre == state.instalacion }
@@ -96,7 +123,7 @@ fun RegistroGeneralScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
-                            onClick = onDetectarInstalacionGps,
+                            onClick = { ejecutarConPermisoGps(onDetectarInstalacionGps) },
                             modifier = Modifier.weight(1f),
                             enabled = !buscandoUbicacion
                         ) {
@@ -106,7 +133,7 @@ fun RegistroGeneralScreen(
                         }
 
                         OutlinedButton(
-                            onClick = onActualizarUbicacionGps,
+                            onClick = { ejecutarConPermisoGps(onActualizarUbicacionGps) },
                             enabled = !buscandoUbicacion
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
