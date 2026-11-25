@@ -3,10 +3,10 @@ package com.example.appnombre_grupo1.viewmodels
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.appnombre_grupo1.data.model.RolUsuario
+import com.example.appnombre_grupo1.data.model.Usuario
+import com.example.appnombre_grupo1.data.model.UsuarioForm
 import com.example.appnombre_grupo1.di.container
-import com.example.appnombre_grupo1.model.RolUsuario
-import com.example.appnombre_grupo1.model.Usuario
-import com.example.appnombre_grupo1.model.UsuarioForm
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import android.util.Log
 
 class UsuariosViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -25,6 +26,27 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
 
     private val _form = MutableStateFlow(UsuarioForm())
     val form: StateFlow<UsuarioForm> = _form.asStateFlow()
+
+    private val _sincronizando = MutableStateFlow(false)
+    val sincronizando: StateFlow<Boolean> = _sincronizando.asStateFlow()
+
+    init {
+        refrescar()
+    }
+
+    fun refrescar() {
+        if (_sincronizando.value) return
+        viewModelScope.launch {
+            _sincronizando.value = true
+            repository.refrescarUsuarios()
+                .onFailure { throwable ->
+                    _form.update {
+                        it.copy(error = throwable.message ?: "No se pudieron sincronizar los usuarios")
+                    }
+                }
+            _sincronizando.value = false
+        }
+    }
 
     fun nuevoUsuario() {
         _form.value = UsuarioForm()
@@ -39,6 +61,7 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
             esUsuarioActual = usuario.username == usernameActual,
         )
     }
+
 
     fun actualizarUsername(username: String) {
         // Sin espacios para que sea fácil de escribir al iniciar sesión
@@ -57,7 +80,7 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
         _form.update { it.copy(password = password, error = null) }
     }
 
-    // Devuelve true si el usuario se guardó correctamente
+    // Devuelve true si el formulario pasó validaciones locales
     fun guardar(): Boolean {
         val form = _form.value
         val error = when {
@@ -74,11 +97,29 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
             return false
         }
 
+        val idExistente = if (!form.esNuevo) {
+            usuarios.value.firstOrNull { it.username == form.username }?.id.orEmpty()
+        } else {
+            ""
+        }
+
         viewModelScope.launch {
-            repository.guardarUsuario(
-                Usuario(username = form.username, nombre = form.nombre.trim(), rol = form.rol),
-                password = form.password.ifEmpty { null },
-            )
+            try {
+                Log.d("GUARDAR_DEBUG", "formNombre=${form.nombre}, idExistente=$idExistente")
+                repository.guardarUsuario(
+                    Usuario(
+                        id = idExistente,
+                        username = form.username,
+                        nombre = form.nombre.trim(),
+                        rol = form.rol,
+                    ),
+                    password = form.password.ifEmpty { null },
+                )
+            } catch (e: Exception) {
+                _form.update {
+                    it.copy(error = e.message ?: "Error al guardar el usuario")
+                }
+            }
         }
         return true
     }
@@ -87,7 +128,15 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
     fun eliminar() {
         val form = _form.value
         if (!form.esNuevo && !form.esUsuarioActual) {
-            viewModelScope.launch { repository.eliminarUsuario(form.username) }
+            viewModelScope.launch {
+                try {
+                    repository.eliminarUsuario(form.username)
+                } catch (e: Exception) {
+                    _form.update {
+                        it.copy(error = e.message ?: "Error al eliminar el usuario")
+                    }
+                }
+            }
         }
     }
 }

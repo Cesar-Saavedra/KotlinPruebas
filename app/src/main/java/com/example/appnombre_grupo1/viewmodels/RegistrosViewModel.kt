@@ -3,12 +3,13 @@ package com.example.appnombre_grupo1.viewmodels
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.appnombre_grupo1.data.model.RegistroGuardado
+import com.example.appnombre_grupo1.data.model.Usuario
 import com.example.appnombre_grupo1.di.container
-import com.example.appnombre_grupo1.model.RegistroGuardado
-import com.example.appnombre_grupo1.model.Usuario
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -25,6 +26,12 @@ class RegistrosViewModel(application: Application) : AndroidViewModel(applicatio
     val archivados: StateFlow<List<RegistroGuardado>> =
         repository.archivados.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    private val _sincronizando = MutableStateFlow(false)
+    val sincronizando: StateFlow<Boolean> = _sincronizando.asStateFlow()
+
+    private val _errorSincronizacion = MutableStateFlow<String?>(null)
+    val errorSincronizacion: StateFlow<String?> = _errorSincronizacion.asStateFlow()
+
     // Se guarda solo el id del registro abierto; el detalle se busca en las listas, así
     // se actualiza solo cuando el registro se edita, se archiva o se restaura
     private val idSeleccionado = MutableStateFlow<String?>(null)
@@ -33,6 +40,23 @@ class RegistrosViewModel(application: Application) : AndroidViewModel(applicatio
         combine(registros, archivados, idSeleccionado) { activos, archivados, id ->
             activos.firstOrNull { it.id == id } ?: archivados.firstOrNull { it.id == id }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    init {
+        refrescar()
+    }
+
+    fun refrescar() {
+        if (_sincronizando.value) return
+        viewModelScope.launch {
+            _sincronizando.value = true
+            _errorSincronizacion.value = null
+            repository.refrescarRegistros()
+                .onFailure { throwable ->
+                    _errorSincronizacion.value = throwable.message ?: "No se pudieron sincronizar los registros"
+                }
+            _sincronizando.value = false
+        }
+    }
 
     fun seleccionar(registro: RegistroGuardado) {
         idSeleccionado.value = registro.id

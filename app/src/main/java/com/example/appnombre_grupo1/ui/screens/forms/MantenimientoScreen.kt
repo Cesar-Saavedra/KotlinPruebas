@@ -10,12 +10,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import android.net.Uri
-import com.example.appnombre_grupo1.model.RegistroGuardado
+import com.example.appnombre_grupo1.data.model.RegistroGuardado
 import com.example.appnombre_grupo1.ui.components.CargandoOverlay
 import com.example.appnombre_grupo1.ui.components.SelectorFoto
 import com.example.appnombre_grupo1.ui.components.TarjetaRegistroAnterior
-import com.example.appnombre_grupo1.model.EstadoComponente
-import com.example.appnombre_grupo1.model.MantenimientoState
+import com.example.appnombre_grupo1.data.model.EstadoComponente
+import com.example.appnombre_grupo1.data.model.MantenimientoState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

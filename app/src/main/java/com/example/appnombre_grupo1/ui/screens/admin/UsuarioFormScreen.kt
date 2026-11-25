@@ -16,8 +16,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.RolUsuario
-import com.example.appnombre_grupo1.model.UsuarioForm
+import com.example.appnombre_grupo1.data.model.RolUsuario
+import com.example.appnombre_grupo1.data.model.UsuarioForm
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

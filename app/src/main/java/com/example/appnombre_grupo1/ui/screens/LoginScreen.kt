@@ -19,7 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.LoginForm
+import com.example.appnombre_grupo1.data.model.LoginForm
 
 @Composable
 fun LoginScreen(

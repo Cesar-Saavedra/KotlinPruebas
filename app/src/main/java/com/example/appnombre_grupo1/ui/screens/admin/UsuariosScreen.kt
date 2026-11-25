@@ -12,8 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.RolUsuario
-import com.example.appnombre_grupo1.model.Usuario
+import com.example.appnombre_grupo1.data.model.RolUsuario
+import com.example.appnombre_grupo1.data.model.Usuario
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +50,10 @@ fun UsuariosScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(usuarios, key = { it.username }) { usuario ->
+            items(
+                items = usuarios,
+                key = { "${it.id}_${it.username}" },
+            ) { usuario ->
                 OutlinedCard(onClick = { onUsuarioClick(usuario) }, modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {

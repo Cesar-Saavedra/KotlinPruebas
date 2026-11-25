@@ -17,10 +17,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.appnombre_grupo1.model.Cliente
-import com.example.appnombre_grupo1.model.RegistroGuardado
-import com.example.appnombre_grupo1.model.RolUsuario
-import com.example.appnombre_grupo1.model.Usuario
+import com.example.appnombre_grupo1.data.model.Cliente
+import com.example.appnombre_grupo1.data.model.RegistroGuardado
+import com.example.appnombre_grupo1.data.model.RolUsuario
+import com.example.appnombre_grupo1.data.model.Usuario
 import com.example.appnombre_grupo1.ui.screens.HomeScreen
 import com.example.appnombre_grupo1.ui.screens.LoginScreen
 import com.example.appnombre_grupo1.ui.screens.ProfileScreen
@@ -45,6 +45,7 @@ import com.example.appnombre_grupo1.viewmodels.ResultadoGuardado
 import com.example.appnombre_grupo1.viewmodels.UsuariosViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import android.util.Log
 
 // Pantalla de inicio que corresponde a cada rol
 private fun inicioSegunRol(usuario: Usuario): Screen =
@@ -166,7 +167,23 @@ fun AppNavigation(
         // Flujo de registro de terreno (técnico)
         composable(Screen.Form.route) {
             // Tras cerrar sesión el usuario es null mientras se navega al login
-            val usuario = usuarioActual ?: return@composable
+            val usuarioBase = usuarioActual ?: return@composable
+            val listaUsuarios by usuariosViewModel.usuarios.collectAsState()
+
+            val usuario = listaUsuarios.firstOrNull {
+                (usuarioBase.id.isNotBlank() && it.id == usuarioBase.id) ||
+                        it.username.equals(usuarioBase.username, ignoreCase = true)
+            }?.let { encontrado ->
+                usuarioBase.copy(
+                    id = encontrado.id.ifBlank { usuarioBase.id },
+                    nombre = encontrado.nombre.ifBlank { usuarioBase.nombre },
+                    rol = encontrado.rol,
+                )
+            } ?: usuarioBase
+
+            LaunchedEffect(Unit) {
+                usuariosViewModel.refrescar()
+            }
 
             InicioRegistroScreen(
                 usuario = usuario,
@@ -250,6 +267,9 @@ fun AppNavigation(
         composable(Screen.Clientes.route) {
             val clientes by clientesViewModel.clientes.collectAsState()
 
+            LaunchedEffect(Unit) {
+                clientesViewModel.refrescar()
+            }
             ClientesScreen(
                 clientes = clientes,
                 onClienteClick = { cliente: Cliente ->
@@ -279,7 +299,9 @@ fun AppNavigation(
                 onCoordenadasChange = clientesViewModel::actualizarCoordenadasInstalacion,
                 onCapturarGps = clientesViewModel::capturarUbicacionActualInstalacion,
                 onGuardarClick = {
-                    if (clientesViewModel.guardar()) mainViewModel.navigateBack()
+                    clientesViewModel.guardar {
+                        mainViewModel.navigateBack()
+                    }
                 },
                 onEliminarClick = {
                     clientesViewModel.eliminar()
@@ -357,9 +379,10 @@ fun AppNavigation(
 
             registro?.let { actual ->
                 val archivado = actual.archivado != null
+                Log.d("DETALLE_DEBUG", "rol=${usuario.rol}, esAdmin=$esAdmin, archivado=${actual.archivado}")
+
                 RegistroDetalleScreen(
                     registro = actual,
-                    // Cualquier usuario puede editar un registro activo; los archivados no se editan
                     puedeEditar = !archivado,
                     puedeArchivar = esAdmin && !archivado,
                     puedeRestaurar = esAdmin && archivado,

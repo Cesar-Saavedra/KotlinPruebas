@@ -59,6 +59,11 @@ object UbicacionUtils {
         context: Context,
         onUbicacionObtenida: (Ubicacion?, String?) -> Unit,
     ) {
+        if (!tienePermisoUbicacion(context)) {
+            onUbicacionObtenida(null, "Permisos de ubicación no concedidos")
+            return
+        }
+
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
         if (locationManager == null) {
             onUbicacionObtenida(null, "Servicio de ubicación no disponible")

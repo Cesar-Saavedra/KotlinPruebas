@@ -5,14 +5,14 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appnombre_grupo1.di.container
-import com.example.appnombre_grupo1.model.Cliente
-import com.example.appnombre_grupo1.model.DatosGeneralesForm
-import com.example.appnombre_grupo1.model.MantenimientoState
-import com.example.appnombre_grupo1.model.PruebasElectricasState
-import com.example.appnombre_grupo1.model.RegistroGuardado
-import com.example.appnombre_grupo1.model.TipoRegistro
-import com.example.appnombre_grupo1.model.Usuario
-import com.example.appnombre_grupo1.model.validation.DatosGeneralesValidator
+import com.example.appnombre_grupo1.data.model.Cliente
+import com.example.appnombre_grupo1.data.model.DatosGeneralesForm
+import com.example.appnombre_grupo1.data.model.MantenimientoState
+import com.example.appnombre_grupo1.data.model.PruebasElectricasState
+import com.example.appnombre_grupo1.data.model.RegistroGuardado
+import com.example.appnombre_grupo1.data.model.TipoRegistro
+import com.example.appnombre_grupo1.data.model.Usuario
+import com.example.appnombre_grupo1.data.model.validation.DatosGeneralesValidator
 import com.example.appnombre_grupo1.ui.utils.Ubicacion
 import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
 import kotlinx.coroutines.delay
@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import android.util.Log
 
 // Resultado de tocar "Guardar", para que la navegación sepa a dónde ir y qué mensaje mostrar
 enum class ResultadoGuardado { NUEVO, EDITADO, SIN_CAMBIOS }
@@ -93,20 +94,20 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     // Al cambiar de cliente se limpian la instalación y el equipo, que dependen de él
-    fun seleccionarCliente(nombreCliente: String) {
+    fun seleccionarCliente(idCliente: String) {
         val actual = _datosGenerales.value
-        if (actual.cliente == nombreCliente) return
-        actualizarDatosGenerales(actual.copy(cliente = nombreCliente, instalacion = "", tipoEquipo = ""))
+        if (actual.cliente == idCliente) return
+        actualizarDatosGenerales(actual.copy(cliente = idCliente, instalacion = "", tipoEquipo = ""))
         calcularDistanciaAInstalacion()
     }
 
-    // Al cambiar de instalación se limpia el equipo, que depende de ella
-    fun seleccionarInstalacion(nombreInstalacion: String) {
+    fun seleccionarInstalacion(idInstalacion: String) {
         val actual = _datosGenerales.value
-        if (actual.instalacion == nombreInstalacion) return
-        actualizarDatosGenerales(actual.copy(instalacion = nombreInstalacion, tipoEquipo = ""))
+        if (actual.instalacion == idInstalacion) return
+        actualizarDatosGenerales(actual.copy(instalacion = idInstalacion, tipoEquipo = ""))
         calcularDistanciaAInstalacion()
     }
+
 
     // --- Verificación GPS y Selección Automática ---
     private val _ubicacionTecnico = MutableStateFlow<Ubicacion?>(null)
@@ -157,7 +158,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
                             if (dist < menorDistancia) {
                                 menorDistancia = dist
                                 clienteElegido = cliente
-                                instalacionElegida = inst.nombre
+                                instalacionElegida = inst.id
                             }
                         }
                     }
@@ -167,7 +168,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
                     val actual = _datosGenerales.value
                     actualizarDatosGenerales(
                         actual.copy(
-                            cliente = clienteElegido.nombre,
+                            cliente = clienteElegido.id,
                             instalacion = instalacionElegida,
                             tipoEquipo = ""
                         )
@@ -190,8 +191,8 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
         val datos = _datosGenerales.value
-        val clienteObj = clientes.value.firstOrNull { it.nombre == datos.cliente }
-        val instObj = clienteObj?.instalaciones?.firstOrNull { it.nombre == datos.instalacion }
+        val clienteObj = clientes.value.firstOrNull { it.id == datos.cliente }
+        val instObj = clienteObj?.instalaciones?.firstOrNull { it.id == datos.instalacion }
 
         if (instObj?.latitud != null && instObj.longitud != null) {
             _distanciaMetros.value = UbicacionUtils.calcularDistanciaMetros(
@@ -205,8 +206,9 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
 
     fun validarRangoGps(): Boolean {
         val datos = _datosGenerales.value
-        val clienteObj = clientes.value.firstOrNull { it.nombre == datos.cliente }
-        val instObj = clienteObj?.instalaciones?.firstOrNull { it.nombre == datos.instalacion }
+        val clienteObj = clientes.value.firstOrNull { it.id == datos.cliente }
+        val instObj = clienteObj?.instalaciones?.firstOrNull { it.id == datos.instalacion }
+
 
         if (instObj?.latitud != null && instObj.longitud != null) {
             val dist = _distanciaMetros.value
@@ -241,8 +243,13 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         val original = _registroEnEdicion.value
         if (original == null) {
             val tecnicoActual = tecnico ?: return
+            val ubicacionActual = _ubicacionTecnico.value
             guardar {
-                registroRepository.guardarMantenimiento(_mantenimientoState.value, tecnicoActual)
+                registroRepository.guardarMantenimiento(
+                    _mantenimientoState.value,
+                    tecnicoActual,
+                    ubicacionActual,
+                )
                 ResultadoGuardado.NUEVO
             }
         } else {
@@ -263,10 +270,18 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         val original = _registroEnEdicion.value
         if (original == null) {
             val tecnicoActual = tecnico ?: return
+            val ubicacionActual = _ubicacionTecnico.value
             guardar {
-                registroRepository.guardarPruebas(_pruebasElectricasState.value, tecnicoActual)
+                registroRepository.guardarPruebas(
+                    _pruebasElectricasState.value,
+                    tecnicoActual,
+                    ubicacionActual,
+                )
                 ResultadoGuardado.NUEVO
             }
+
+
+
         } else {
             val editorActual = editor ?: return
             guardar {
@@ -286,11 +301,15 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
 
         viewModelScope.launch {
             _guardando.value = true
-            // Simula el tiempo que tomaría enviar el registro a un servidor
-            delay(TIEMPO_GUARDADO_MS)
-            val resultado = accion()
-            _guardando.value = false
-            _registroGuardado.emit(resultado)
+            try {
+                delay(TIEMPO_GUARDADO_MS)
+                val resultado = accion()
+                _registroGuardado.emit(resultado)
+            } catch (e: Exception) {
+                // Manejar error aquí (ej. loguear y/o exponer mensaje de error)
+            } finally {
+                _guardando.value = false
+            }
         }
     }
 
@@ -302,7 +321,13 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         _registroEnEdicion.value = registro
         editor = usuario
         tecnico = null
-        val datos = validator.validate(registro.datosGenerales)
+
+        val tecnicoCreador = registro.tecnicoUsername.ifBlank {
+            registro.datosGenerales.tecnico
+        }
+        val datosConTecnico = registro.datosGenerales.copy(tecnico = tecnicoCreador)
+        val datos = validator.validate(datosConTecnico)
+
         _datosGenerales.value = datos
         _mostrarErrores.value = false
         _mantenimientoState.value = registro.mantenimiento?.copy(datosGenerales = datos)
@@ -310,6 +335,7 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         _pruebasElectricasState.value = registro.pruebas?.copy(datosGenerales = datos)
             ?: PruebasElectricasState(datosGenerales = datos)
     }
+
 
     // Crea el archivo donde la cámara guardará la foto y devuelve su Uri
     fun prepararFotoCamara(): Uri {

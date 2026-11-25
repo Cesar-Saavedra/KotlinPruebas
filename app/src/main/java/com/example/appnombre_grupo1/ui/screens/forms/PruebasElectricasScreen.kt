@@ -15,11 +15,11 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.RegistroGuardado
+import com.example.appnombre_grupo1.data.model.RegistroGuardado
 import com.example.appnombre_grupo1.ui.components.CargandoOverlay
 import com.example.appnombre_grupo1.ui.components.TarjetaRegistroAnterior
-import com.example.appnombre_grupo1.model.PruebasElectricasState
-import com.example.appnombre_grupo1.model.VeredictoPrueba
+import com.example.appnombre_grupo1.data.model.PruebasElectricasState
+import com.example.appnombre_grupo1.data.model.VeredictoPrueba
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

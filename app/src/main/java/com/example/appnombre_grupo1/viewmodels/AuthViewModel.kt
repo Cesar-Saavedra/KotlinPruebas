@@ -3,9 +3,10 @@ package com.example.appnombre_grupo1.viewmodels
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.appnombre_grupo1.data.model.LoginForm
+import com.example.appnombre_grupo1.data.model.Usuario
 import com.example.appnombre_grupo1.di.container
-import com.example.appnombre_grupo1.model.LoginForm
-import com.example.appnombre_grupo1.model.Usuario
+import com.example.appnombre_grupo1.data.model.RolUsuario
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import android.util.Log
 
 // Resultado de leer la sesión guardada; usuario es null si no hay sesión iniciada
 data class SesionLeida(val usuario: Usuario?)
@@ -31,9 +33,38 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     // Busca en la base de datos al usuario guardado como sesión; se mantiene al día
     // si el administrador edita sus datos
-    private val usuarioConSesion = combine(repository.usuarios, repository.sesion) { usuarios, sesion ->
-        usuarios.firstOrNull { it.username == sesion }
+    private val usuarioConSesion = combine(
+        repository.usuarios,
+        repository.sesion,
+        repository.sesionId,
+    ) { usuarios, sesion, sesionId ->
+        val encontrado = usuarios.firstOrNull { it.username == sesion }
+            ?: usuarios.firstOrNull { sesionId != null && it.id == sesionId }
+
+        Log.d(
+            "SESION_DEBUG",
+            "sesion=$sesion, sesionId=$sesionId, encontrado=${encontrado?.username}:${encontrado?.id}:${encontrado?.rol}, prefsRol=${repository.obtenerRolSesion()}"
+        )
+
+        if (encontrado != null) {
+            if (!sesionId.isNullOrBlank() && encontrado.id != sesionId) {
+                encontrado.copy(id = sesionId)
+            } else {
+                encontrado
+            }
+        } else if (!sesion.isNullOrBlank() && !sesionId.isNullOrBlank()) {
+            Usuario(
+                id = sesionId,
+                username = sesion,
+                nombre = sesion,
+                rol = repository.obtenerRolSesion() ?: RolUsuario.TECNICO,
+            )
+        } else {
+            null
+        }
     }
+
+
 
     // null hasta la primera lectura de la base de datos al abrir la app
     val sesion: StateFlow<SesionLeida?> =
@@ -45,6 +76,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     // Evento que se emite una vez cuando el inicio de sesión es correcto
     private val _inicioSesion = MutableSharedFlow<Usuario>()
     val inicioSesion: SharedFlow<Usuario> = _inicioSesion.asSharedFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.refrescarUsuarios()
+        }
+    }
 
     fun actualizarUsername(username: String) {
         _loginForm.update { it.copy(username = username, error = null) }
@@ -62,7 +99,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // La consulta a la base de datos se hace en una corrutina
+        // La autenticación intenta primero contra la API remota y luego contra Room
         viewModelScope.launch {
             _loginForm.update { it.copy(verificando = true) }
             val usuario = repository.autenticar(form.username, form.password)
@@ -76,6 +113,23 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             repository.guardarSesion(usuario)
             _loginForm.value = LoginForm()
             _inicioSesion.emit(usuario)
+
+            // Descargar datos desde el backend hacia Room al iniciar sesión
+            viewModelScope.launch {
+                try {
+                    container.clienteRepository.refrescarClientes()
+                } catch (_: Exception) {
+                }
+                try {
+                    container.registroRepository.refrescarRegistros()
+                } catch (_: Exception) {
+                }
+                try {
+                    repository.refrescarUsuarios()
+                } catch (_: Exception) {
+                }
+            }
+
         }
     }
 

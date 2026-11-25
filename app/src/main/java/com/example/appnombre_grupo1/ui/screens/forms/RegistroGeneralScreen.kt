@@ -19,9 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.Cliente
-import com.example.appnombre_grupo1.model.DatosGeneralesForm
-import com.example.appnombre_grupo1.model.TipoRegistro
+import com.example.appnombre_grupo1.data.model.Cliente
+import com.example.appnombre_grupo1.data.model.DatosGeneralesForm
+import com.example.appnombre_grupo1.data.model.TipoRegistro
 import com.example.appnombre_grupo1.ui.components.SelectorDesplegable
 import com.example.appnombre_grupo1.ui.components.rememberAccionConPermisoUbicacion
 import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
@@ -51,8 +51,15 @@ fun RegistroGeneralScreen(
     val focusManager = LocalFocusManager.current
     val ejecutarConPermisoGps = rememberAccionConPermisoUbicacion()
 
-    val clienteSeleccionado = clientes.firstOrNull { it.nombre == state.cliente }
-    val instalacionSeleccionada = clienteSeleccionado?.instalaciones?.firstOrNull { it.nombre == state.instalacion }
+    // Buscar por ID o por nombre para máxima compatibilidad
+    val clienteSeleccionado = clientes.firstOrNull { it.id == state.cliente || it.nombre.equals(state.cliente, true) }
+    val instalacionSeleccionada = clienteSeleccionado?.instalaciones?.firstOrNull { it.id == state.instalacion || it.nombre.equals(state.instalacion, true) }
+    val tiposEquipoSeleccionado = instalacionSeleccionada?.tiposEquipo?.firstOrNull { it.id == state.tipoEquipo || it.nombre.equals(state.tipoEquipo, true) }
+
+    // Nombres visibles para los selectores
+    val opcionesClientes = clientes.map { it.nombre }
+    val opcionesInstalaciones = clienteSeleccionado?.instalaciones.orEmpty().map { it.nombre }
+    val opcionesTiposEquipo = instalacionSeleccionada?.tiposEquipo.orEmpty().map { it.nombre }
 
     val clienteError = state.errores.cliente.takeIf { mostrarErrores }
     val instalacionError = state.errores.instalacion.takeIf { mostrarErrores }
@@ -190,9 +197,12 @@ fun RegistroGeneralScreen(
 
             SelectorDesplegable(
                 etiqueta = "Cliente *",
-                seleccion = state.cliente,
-                opciones = clientes.map { it.nombre },
-                onSeleccionar = onClienteChange,
+                seleccion = clienteSeleccionado?.nombre.orEmpty(),
+                opciones = opcionesClientes,
+                onSeleccionar = { nombreElegido ->
+                    val idElegido = clientes.firstOrNull { it.nombre == nombreElegido }?.id.orEmpty()
+                    onClienteChange(idElegido)
+                },
                 error = clienteError,
                 textoDeshabilitado = "No hay clientes registrados. Contacte al administrador",
                 modifier = Modifier.fillMaxWidth(),
@@ -200,9 +210,15 @@ fun RegistroGeneralScreen(
 
             SelectorDesplegable(
                 etiqueta = "Instalación / Subestación *",
-                seleccion = state.instalacion,
-                opciones = clienteSeleccionado?.instalaciones.orEmpty().map { it.nombre },
-                onSeleccionar = onInstalacionChange,
+                seleccion = instalacionSeleccionada?.nombre.orEmpty(),
+                opciones = opcionesInstalaciones,
+                onSeleccionar = { nombreElegido ->
+                    val idElegido = clienteSeleccionado?.instalaciones
+                        ?.firstOrNull { it.nombre == nombreElegido }
+                        ?.id
+                        .orEmpty()
+                    onInstalacionChange(idElegido)
+                },
                 error = instalacionError,
                 textoDeshabilitado = "Seleccione primero un cliente",
                 modifier = Modifier.fillMaxWidth(),
@@ -212,18 +228,33 @@ fun RegistroGeneralScreen(
                 value = state.tecnico,
                 onValueChange = {},
                 readOnly = true,
+                enabled = !editando,
                 label = { Text("Técnico / Ingeniero a cargo") },
                 isError = tecnicoError != null,
-                supportingText = { Text(tecnicoError ?: "Usuario con sesión iniciada") },
+                supportingText = {
+                    Text(
+                        tecnicoError ?: if (editando) {
+                            "Usuario creador del registro (no editable)"
+                        } else {
+                            "Usuario con sesión iniciada"
+                        }
+                    )
+                },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
 
             SelectorDesplegable(
                 etiqueta = "Tipo de Equipo *",
-                seleccion = state.tipoEquipo,
-                opciones = instalacionSeleccionada?.tiposEquipo.orEmpty(),
-                onSeleccionar = { onStateChange(state.copy(tipoEquipo = it)) },
+                seleccion = tiposEquipoSeleccionado?.nombre.orEmpty(),
+                opciones = opcionesTiposEquipo,
+                onSeleccionar = { nombreElegido ->
+                    val idElegido = instalacionSeleccionada?.tiposEquipo
+                        ?.firstOrNull() { it.nombre == nombreElegido }
+                        ?.id
+                        .orEmpty()
+                    onStateChange(state.copy(tipoEquipo = idElegido))
+                },
                 error = tipoEquipoError,
                 textoDeshabilitado = "Seleccione primero una instalación",
                 modifier = Modifier.fillMaxWidth(),

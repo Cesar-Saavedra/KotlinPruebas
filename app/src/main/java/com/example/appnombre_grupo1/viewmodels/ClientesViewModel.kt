@@ -3,10 +3,11 @@ package com.example.appnombre_grupo1.viewmodels
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.appnombre_grupo1.data.model.Cliente
+import com.example.appnombre_grupo1.data.model.ClienteForm
+import com.example.appnombre_grupo1.data.model.Instalacion
+import com.example.appnombre_grupo1.data.model.TipoEquipo
 import com.example.appnombre_grupo1.di.container
-import com.example.appnombre_grupo1.model.Cliente
-import com.example.appnombre_grupo1.model.ClienteForm
-import com.example.appnombre_grupo1.model.Instalacion
 import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import android.util.Log
 
 class ClientesViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -26,6 +28,27 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
 
     private val _form = MutableStateFlow(ClienteForm())
     val form: StateFlow<ClienteForm> = _form.asStateFlow()
+
+    private val _sincronizando = MutableStateFlow(false)
+    val sincronizando: StateFlow<Boolean> = _sincronizando.asStateFlow()
+
+    init {
+        refrescar()
+    }
+
+    fun refrescar() {
+        if (_sincronizando.value) return
+        viewModelScope.launch {
+            _sincronizando.value = true
+            repository.refrescarClientes()
+                .onFailure { throwable ->
+                    _form.update {
+                        it.copy(error = throwable.message ?: "No se pudieron sincronizar los clientes")
+                    }
+                }
+            _sincronizando.value = false
+        }
+    }
 
     // Prepara el formulario: vacío para un cliente nuevo o con los datos del cliente a editar
     fun nuevoCliente() {
@@ -84,10 +107,10 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
 
             limpio.copy(
                 instalaciones = form.instalaciones.map { actual ->
-                    if (actual.nombre != instalacion || actual.tiposEquipo.any { it.equals(nuevo, ignoreCase = true) }) {
+                    if (actual.nombre != instalacion || actual.tiposEquipo.any { it.nombre.equals(nuevo, ignoreCase = true) }) {
                         actual
                     } else {
-                        actual.copy(tiposEquipo = actual.tiposEquipo + nuevo)
+                        actual.copy(tiposEquipo = actual.tiposEquipo + TipoEquipo(nombre = nuevo))
                     }
                 },
                 error = null,
@@ -99,7 +122,7 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
         _form.update { form ->
             form.copy(
                 instalaciones = form.instalaciones.map {
-                    if (it.nombre == instalacion) it.copy(tiposEquipo = it.tiposEquipo - tipo) else it
+                    if (it.nombre == instalacion) it.copy(tiposEquipo = it.tiposEquipo.filterNot { t -> t.nombre == tipo }) else it
                 },
             )
         }
@@ -130,12 +153,11 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // Devuelve true si el cliente se guardó correctamente
-    fun guardar(): Boolean {
+    // Devuelve true si el formulario pasó las validaciones locales
+    fun guardar(onGuardadoExitoso: () -> Unit = {}) {
         val form = _form.value
         val nombre = form.nombre.trim()
         val instalacionSinEquipos = form.instalaciones.firstOrNull { it.tiposEquipo.isEmpty() }
-        // Las coordenadas son opcionales, pero si se ingresan deben venir las dos y ser válidas
         val instalacionCoordenadaInvalida = form.instalaciones.firstOrNull { !coordenadasValidas(it) }
         val error = when {
             nombre.isEmpty() -> "Ingrese el nombre del cliente"
@@ -150,25 +172,40 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
         }
         if (error != null) {
             _form.update { it.copy(error = error) }
-            return false
+            return
         }
 
-        // Room no permite escribir en el hilo principal: se guarda en una corrutina
         viewModelScope.launch {
-            repository.guardar(
-                Cliente(
-                    id = form.id.orEmpty(),
-                    nombre = nombre,
-                    instalaciones = form.instalaciones,
-                ),
-            )
+            try {
+                repository.guardar(
+                    Cliente(
+                        id = form.id.orEmpty(),
+                        nombre = nombre,
+                        instalaciones = form.instalaciones,
+                    ),
+                )
+                repository.refrescarClientes()
+                onGuardadoExitoso()
+            } catch (e: Exception) {
+                _form.update {
+                    it.copy(error = e.message ?: "Error al guardar el cliente")
+                }
+            }
         }
-        return true
     }
+
 
     fun eliminar() {
         val id = _form.value.id ?: return
-        viewModelScope.launch { repository.eliminar(id) }
+        viewModelScope.launch {
+            try {
+                repository.eliminar(id)
+            } catch (e: Exception) {
+                _form.update {
+                    it.copy(error = e.message ?: "Error al eliminar el cliente")
+                }
+            }
+        }
     }
 
     private fun coordenadasValidas(instalacion: Instalacion): Boolean {

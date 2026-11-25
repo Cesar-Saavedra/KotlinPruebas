@@ -12,8 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.RegistroGuardado
-import com.example.appnombre_grupo1.model.TipoRegistro
+import com.example.appnombre_grupo1.data.model.RegistroGuardado
+import com.example.appnombre_grupo1.data.model.TipoRegistro
 import com.example.appnombre_grupo1.ui.utils.formatearFecha
 
 @OptIn(ExperimentalMaterial3Api::class)

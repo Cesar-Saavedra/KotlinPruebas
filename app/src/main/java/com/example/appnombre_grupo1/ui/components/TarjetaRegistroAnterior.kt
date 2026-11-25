@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.RegistroGuardado
+import com.example.appnombre_grupo1.data.model.RegistroGuardado
 import com.example.appnombre_grupo1.ui.utils.formatearFecha
 
 // Avisa si el equipo ya tiene un registro anterior y permite abrirlo para compararlo

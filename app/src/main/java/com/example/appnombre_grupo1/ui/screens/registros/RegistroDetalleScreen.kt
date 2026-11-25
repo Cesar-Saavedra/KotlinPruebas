@@ -13,10 +13,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.EstadoComponente
-import com.example.appnombre_grupo1.model.MantenimientoState
-import com.example.appnombre_grupo1.model.PruebasElectricasState
-import com.example.appnombre_grupo1.model.RegistroGuardado
+import com.example.appnombre_grupo1.data.model.EstadoComponente
+import com.example.appnombre_grupo1.data.model.MantenimientoState
+import com.example.appnombre_grupo1.data.model.PruebasElectricasState
+import com.example.appnombre_grupo1.data.model.RegistroGuardado
 import com.example.appnombre_grupo1.ui.components.FotoArchivo
 import com.example.appnombre_grupo1.ui.utils.formatearFecha
 
@@ -108,7 +108,7 @@ private fun Historial(registro: RegistroGuardado) {
         }
         Dato(
             "Creado el ${formatearFecha(registro.fechaMillis)}",
-            "por ${registro.datosGenerales.tecnico} (@${registro.tecnicoUsername})",
+            "por ${registro.tecnicoUsername} (@${registro.tecnicoUsername})",
         )
     }
 }

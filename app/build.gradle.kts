@@ -74,4 +74,8 @@ dependencies {
 
 // Iconos extendidos de Material (opcional pero muy útil si te faltan iconos como Person)
     implementation("androidx.compose.material:material-icons-extended")
+
+// RetroFit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 }

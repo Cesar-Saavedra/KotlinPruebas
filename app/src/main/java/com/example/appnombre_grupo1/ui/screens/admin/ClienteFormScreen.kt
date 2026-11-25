@@ -18,8 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.ClienteForm
-import com.example.appnombre_grupo1.model.Instalacion
+import com.example.appnombre_grupo1.data.model.ClienteForm
+import com.example.appnombre_grupo1.data.model.Instalacion
 import com.example.appnombre_grupo1.ui.components.rememberAccionConPermisoUbicacion
 
 // Campo de texto con un botón para agregar lo escrito
@@ -166,9 +166,9 @@ private fun TarjetaInstalacion(
 
             instalacion.tiposEquipo.forEach { tipo ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("• $tipo", modifier = Modifier.weight(1f))
-                    IconButton(onClick = { onQuitarTipoEquipo(tipo) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Quitar $tipo")
+                    Text("• ${tipo.nombre}", modifier = Modifier.weight(1f))
+                    IconButton(onClick = { onQuitarTipoEquipo(tipo.nombre) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Quitar ${tipo.nombre}")
                     }
                 }
             }

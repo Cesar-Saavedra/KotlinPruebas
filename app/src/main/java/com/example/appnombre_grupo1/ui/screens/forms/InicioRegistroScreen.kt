@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.appnombre_grupo1.model.Usuario
+import com.example.appnombre_grupo1.data.model.Usuario
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
