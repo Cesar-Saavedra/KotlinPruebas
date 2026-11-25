@@ -47,6 +47,13 @@ Desarrollada en **Kotlin** con **Jetpack Compose**, arquitectura **MVVM** y base
 - Las **migraciones** de la base de datos conservan los datos al actualizar la app.
 - Los formularios no pierden lo escrito al **girar el teléfono**, porque el estado vive en los ViewModel.
 
+### Conexión con el backend
+- La app se conecta con **Retrofit** al backend de Induztek (Spring Boot + PostgreSQL), publicado en Render: `https://backend-induztek.onrender.com/`.
+- **Room funciona como copia local:** las pantallas leen de Room y los repositorios la mantienen al día con el servidor. Así la app sigue funcionando sin conexión.
+- **Login:** se valida con el servidor; sin conexión, con la copia local de los usuarios.
+- **Registros:** se guardan primero en el teléfono y luego se envían. Si no hay señal, quedan *pendientes de envío* y se envían en la siguiente sincronización: al abrir la app, al iniciar sesión o con el botón **Actualizar** de "Registros anteriores".
+- **Tareas de oficina** (clientes, usuarios, archivar y restaurar): se hacen directamente en el servidor y requieren conexión.
+
 ## Tecnologías
 
 | Tecnología | Uso |
@@ -56,6 +63,7 @@ Desarrollada en **Kotlin** con **Jetpack Compose**, arquitectura **MVVM** y base
 | MVVM (ViewModel + StateFlow) | Arquitectura |
 | Navigation Compose | Navegación entre pantallas |
 | Room (SQLite) + KSP | Base de datos local |
+| Retrofit + Gson | Conexión con el backend (API REST) |
 | Corrutinas y Flow | Tareas en segundo plano y datos reactivos |
 | Activity Result API + FileProvider | Cámara y galería |
 | LocationManager | Ubicación GPS |

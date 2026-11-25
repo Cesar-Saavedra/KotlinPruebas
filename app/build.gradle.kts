@@ -72,6 +72,10 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+// Conexión con el backend (API REST)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+
 // Iconos extendidos de Material (opcional pero muy útil si te faltan iconos como Person)
     implementation("androidx.compose.material:material-icons-extended")
 }

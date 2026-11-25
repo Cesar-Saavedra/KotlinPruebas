@@ -7,9 +7,12 @@ import com.example.appnombre_grupo1.di.container
 import com.example.appnombre_grupo1.model.RolUsuario
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.model.UsuarioForm
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -25,6 +28,12 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
 
     private val _form = MutableStateFlow(UsuarioForm())
     val form: StateFlow<UsuarioForm> = _form.asStateFlow()
+
+    // Se emite cuando el servidor confirmó el guardado o la eliminación
+    private val _operacionExitosa = MutableSharedFlow<Unit>()
+    val operacionExitosa: SharedFlow<Unit> = _operacionExitosa.asSharedFlow()
+
+    private var enProceso = false
 
     fun nuevoUsuario() {
         _form.value = UsuarioForm()
@@ -58,7 +67,8 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
     }
 
     // Devuelve true si el usuario se guardó correctamente
-    fun guardar(): Boolean {
+    fun guardar() {
+        if (enProceso) return
         val form = _form.value
         val error = when {
             form.username.isBlank() -> "Ingrese el nombre de usuario"
@@ -71,23 +81,29 @@ class UsuariosViewModel(application: Application) : AndroidViewModel(application
         }
         if (error != null) {
             _form.update { it.copy(error = error) }
-            return false
+            return
         }
-
-        viewModelScope.launch {
-            repository.guardarUsuario(
-                Usuario(username = form.username, nombre = form.nombre.trim(), rol = form.rol),
-                password = form.password.ifEmpty { null },
-            )
+        val usuario = Usuario(username = form.username, nombre = form.nombre.trim(), rol = form.rol)
+        ejecutar {
+            if (form.esNuevo) repository.crearUsuario(usuario, form.password)
+            else repository.editarUsuario(usuario, form.password.ifEmpty { null })
         }
-        return true
     }
 
     // El administrador no puede eliminarse a sí mismo
     fun eliminar() {
         val form = _form.value
-        if (!form.esNuevo && !form.esUsuarioActual) {
-            viewModelScope.launch { repository.eliminarUsuario(form.username) }
+        if (form.esNuevo || form.esUsuarioActual || enProceso) return
+        ejecutar { repository.eliminarUsuario(form.username) }
+    }
+
+    // operacion devuelve null si el servidor la aceptó, o el mensaje de error
+    private fun ejecutar(operacion: suspend () -> String?) {
+        enProceso = true
+        viewModelScope.launch {
+            val error = operacion()
+            enProceso = false
+            if (error == null) _operacionExitosa.emit(Unit) else _form.update { it.copy(error = error) }
         }
     }
 }

@@ -32,6 +32,8 @@ data class RegistroGuardado(
     val ediciones: List<EdicionRegistro> = emptyList(),
     // null si el registro está activo
     val archivado: ArchivoRegistro? = null,
+    // true mientras no se haya podido enviar al servidor
+    val pendienteEnvio: Boolean = false,
 ) {
     val datosGenerales: DatosGeneralesForm
         get() = mantenimiento?.datosGenerales ?: pruebas?.datosGenerales ?: DatosGeneralesForm()

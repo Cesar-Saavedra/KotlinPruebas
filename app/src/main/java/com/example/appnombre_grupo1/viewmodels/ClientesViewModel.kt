@@ -8,9 +8,12 @@ import com.example.appnombre_grupo1.model.Cliente
 import com.example.appnombre_grupo1.model.ClienteForm
 import com.example.appnombre_grupo1.model.Instalacion
 import com.example.appnombre_grupo1.ui.utils.UbicacionUtils
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -26,6 +29,12 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
 
     private val _form = MutableStateFlow(ClienteForm())
     val form: StateFlow<ClienteForm> = _form.asStateFlow()
+
+    // Se emite cuando el servidor confirmó el guardado o la eliminación
+    private val _operacionExitosa = MutableSharedFlow<Unit>()
+    val operacionExitosa: SharedFlow<Unit> = _operacionExitosa.asSharedFlow()
+
+    private var enProceso = false
 
     // Prepara el formulario: vacío para un cliente nuevo o con los datos del cliente a editar
     fun nuevoCliente() {
@@ -131,7 +140,8 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
     }
 
     // Devuelve true si el cliente se guardó correctamente
-    fun guardar(): Boolean {
+    fun guardar() {
+        if (enProceso) return
         val form = _form.value
         val nombre = form.nombre.trim()
         val instalacionSinEquipos = form.instalaciones.firstOrNull { it.tiposEquipo.isEmpty() }
@@ -150,25 +160,25 @@ class ClientesViewModel(application: Application) : AndroidViewModel(application
         }
         if (error != null) {
             _form.update { it.copy(error = error) }
-            return false
+            return
         }
-
-        // Room no permite escribir en el hilo principal: se guarda en una corrutina
-        viewModelScope.launch {
-            repository.guardar(
-                Cliente(
-                    id = form.id.orEmpty(),
-                    nombre = nombre,
-                    instalaciones = form.instalaciones,
-                ),
-            )
-        }
-        return true
+        ejecutar { repository.guardar(Cliente(id = form.id.orEmpty(), nombre = nombre, instalaciones = form.instalaciones)) }
     }
 
     fun eliminar() {
         val id = _form.value.id ?: return
-        viewModelScope.launch { repository.eliminar(id) }
+        if (enProceso) return
+        ejecutar { repository.eliminar(id) }
+    }
+
+    // operacion devuelve null si el servidor la aceptó, o el mensaje de error
+    private fun ejecutar(operacion: suspend () -> String?) {
+        enProceso = true
+        viewModelScope.launch {
+            val error = operacion()
+            enProceso = false
+            if (error == null) _operacionExitosa.emit(Unit) else _form.update { it.copy(error = error) }
+        }
     }
 
     private fun coordenadasValidas(instalacion: Instalacion): Boolean {

@@ -25,6 +25,7 @@ data class SesionLeida(val usuario: Usuario?)
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = container.usuarioRepository
+    private val sincronizacion = container.sincronizacionRepository
 
     private val _loginForm = MutableStateFlow(LoginForm())
     val loginForm: StateFlow<LoginForm> = _loginForm.asStateFlow()
@@ -45,6 +46,15 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     // Evento que se emite una vez cuando el inicio de sesión es correcto
     private val _inicioSesion = MutableSharedFlow<Usuario>()
     val inicioSesion: SharedFlow<Usuario> = _inicioSesion.asSharedFlow()
+
+    init {
+        // Si ya había una sesión, se actualizan los datos con el servidor al abrir la app
+        if (repository.sesion.value != null) sincronizarEnSegundoPlano()
+    }
+
+    private fun sincronizarEnSegundoPlano() {
+        viewModelScope.launch { sincronizacion.sincronizar() }
+    }
 
     fun actualizarUsername(username: String) {
         _loginForm.update { it.copy(username = username, error = null) }
@@ -76,6 +86,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             repository.guardarSesion(usuario)
             _loginForm.value = LoginForm()
             _inicioSesion.emit(usuario)
+            sincronizarEnSegundoPlano()
         }
     }
 

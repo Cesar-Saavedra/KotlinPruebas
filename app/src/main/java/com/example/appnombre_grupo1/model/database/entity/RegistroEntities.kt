@@ -32,6 +32,9 @@ data class RegistroEntity(
     val archivadoPorUsername: String? = null,
     val archivadoPorNombre: String? = null,
     val archivadoFechaMillis: Long? = null,
+    // Envío al servidor pendiente (versión 4): null = sincronizado, "CREAR" o "EDITAR"
+    val pendiente: String? = null,
+    val pendienteEditor: String? = null,
 )
 
 // Tabla "mantenimientos": detalle de un registro de tipo Mantenimiento (relación 1 a 1)

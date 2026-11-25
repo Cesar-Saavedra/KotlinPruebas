@@ -10,6 +10,7 @@ import com.example.appnombre_grupo1.model.DatosGeneralesForm
 import com.example.appnombre_grupo1.model.MantenimientoState
 import com.example.appnombre_grupo1.model.PruebasElectricasState
 import com.example.appnombre_grupo1.model.RegistroGuardado
+import com.example.appnombre_grupo1.model.ResultadoEnvio
 import com.example.appnombre_grupo1.model.TipoRegistro
 import com.example.appnombre_grupo1.model.Usuario
 import com.example.appnombre_grupo1.model.validation.DatosGeneralesValidator
@@ -30,7 +31,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 // Resultado de tocar "Guardar", para que la navegación sepa a dónde ir y qué mensaje mostrar
-enum class ResultadoGuardado { NUEVO, EDITADO, SIN_CAMBIOS }
+enum class ResultadoGuardado { NUEVO, NUEVO_PENDIENTE, EDITADO, EDITADO_PENDIENTE, SIN_CAMBIOS }
 
 // Maneja el formulario de un registro. Se usa una instancia para crear registros nuevos y
 // otra distinta (key = "edicion") para editar registros guardados, así no se mezclan.
@@ -242,19 +243,18 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         if (original == null) {
             val tecnicoActual = tecnico ?: return
             guardar {
-                registroRepository.guardarMantenimiento(_mantenimientoState.value, tecnicoActual)
-                ResultadoGuardado.NUEVO
+                resultadoNuevo(registroRepository.guardarMantenimiento(_mantenimientoState.value, tecnicoActual))
             }
         } else {
             val editorActual = editor ?: return
             guardar {
                 val nuevo = _mantenimientoState.value
-                val huboCambios = registroRepository.actualizarMantenimiento(original, nuevo, editorActual)
+                val resultado = registroRepository.actualizarMantenimiento(original, nuevo, editorActual)
                 // Si se reemplazó la foto, la anterior ya no la usa ningún registro
                 original.mantenimiento?.fotoPath
-                    ?.takeIf { huboCambios && it != nuevo.fotoPath }
+                    ?.takeIf { resultado != ResultadoEnvio.SIN_CAMBIOS && it != nuevo.fotoPath }
                     ?.let { eliminarFotoSiNoSeUsa(it) }
-                terminarEdicion(huboCambios)
+                resultadoEdicion(resultado)
             }
         }
     }
@@ -264,21 +264,25 @@ class FormularioViewModel(application: Application) : AndroidViewModel(applicati
         if (original == null) {
             val tecnicoActual = tecnico ?: return
             guardar {
-                registroRepository.guardarPruebas(_pruebasElectricasState.value, tecnicoActual)
-                ResultadoGuardado.NUEVO
+                resultadoNuevo(registroRepository.guardarPruebas(_pruebasElectricasState.value, tecnicoActual))
             }
         } else {
             val editorActual = editor ?: return
             guardar {
-                val huboCambios = registroRepository.actualizarPruebas(original, _pruebasElectricasState.value, editorActual)
-                terminarEdicion(huboCambios)
+                resultadoEdicion(registroRepository.actualizarPruebas(original, _pruebasElectricasState.value, editorActual))
             }
         }
     }
 
+    private fun resultadoNuevo(envio: ResultadoEnvio) =
+        if (envio == ResultadoEnvio.PENDIENTE) ResultadoGuardado.NUEVO_PENDIENTE else ResultadoGuardado.NUEVO
+
     // El modo edición se mantiene hasta salir de la pantalla, así el título no cambia mientras se navega
-    private fun terminarEdicion(huboCambios: Boolean): ResultadoGuardado =
-        if (huboCambios) ResultadoGuardado.EDITADO else ResultadoGuardado.SIN_CAMBIOS
+    private fun resultadoEdicion(envio: ResultadoEnvio) = when (envio) {
+        ResultadoEnvio.ENVIADO -> ResultadoGuardado.EDITADO
+        ResultadoEnvio.PENDIENTE -> ResultadoGuardado.EDITADO_PENDIENTE
+        ResultadoEnvio.SIN_CAMBIOS -> ResultadoGuardado.SIN_CAMBIOS
+    }
 
     // Guarda en una corrutina mostrando la carga y avisa a la vista cuando termina
     private fun guardar(accion: suspend () -> ResultadoGuardado) {

@@ -68,6 +68,24 @@ abstract class ClienteDao {
         }
     }
 
+    @Query("DELETE FROM tipos_equipo")
+    abstract suspend fun eliminarTodosLosTiposEquipo()
+
+    @Query("DELETE FROM instalaciones")
+    abstract suspend fun eliminarTodasLasInstalaciones()
+
+    @Query("DELETE FROM clientes")
+    abstract suspend fun eliminarTodosLosClientes()
+
+    // Deja las tablas iguales a la lista del servidor
+    @Transaction
+    open suspend fun reemplazarTodos(clientes: List<Pair<ClienteEntity, List<DatosInstalacionGuardar>>>) {
+        eliminarTodosLosTiposEquipo()
+        eliminarTodasLasInstalaciones()
+        eliminarTodosLosClientes()
+        clientes.forEach { (cliente, instalaciones) -> guardarConInstalaciones(cliente, instalaciones) }
+    }
+
     @Transaction
     open suspend fun eliminarCliente(clienteId: String) {
         eliminarTiposEquipoDeCliente(clienteId)

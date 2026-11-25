@@ -9,7 +9,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -44,7 +43,6 @@ import com.example.appnombre_grupo1.viewmodels.RegistrosViewModel
 import com.example.appnombre_grupo1.viewmodels.ResultadoGuardado
 import com.example.appnombre_grupo1.viewmodels.UsuariosViewModel
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 
 // Pantalla de inicio que corresponde a cada rol
 private fun inicioSegunRol(usuario: Usuario): Screen =
@@ -117,9 +115,15 @@ fun AppNavigation(
 
     // Cuando termina de guardarse un registro nuevo: vuelve al inicio y muestra el mensaje
     LaunchedEffect(Unit) {
-        formularioViewModel.registroGuardado.collect {
+        formularioViewModel.registroGuardado.collect { resultado ->
             mainViewModel.navigateTo(Screen.Form, popUpToRoute = Screen.Form, inclusive = true)
-            snackbarHostState.showSnackbar("Registro guardado")
+            snackbarHostState.showSnackbar(
+                if (resultado == ResultadoGuardado.NUEVO_PENDIENTE) {
+                    "Registro guardado en el teléfono. Se enviará al servidor cuando haya conexión"
+                } else {
+                    "Registro guardado"
+                },
+            )
         }
     }
 
@@ -128,13 +132,30 @@ fun AppNavigation(
         edicionViewModel.registroGuardado.collect { resultado ->
             mainViewModel.navigateTo(Screen.RegistroDetalle, popUpToRoute = Screen.RegistroDetalle, inclusive = true)
             snackbarHostState.showSnackbar(
-                if (resultado == ResultadoGuardado.EDITADO) "Cambios guardados" else "No se detectaron cambios",
+                when (resultado) {
+                    ResultadoGuardado.EDITADO -> "Cambios guardados"
+                    ResultadoGuardado.EDITADO_PENDIENTE -> "Cambios guardados en el teléfono. Se enviarán cuando haya conexión"
+                    else -> "No se detectaron cambios"
+                },
             )
         }
     }
 
-    // Para mostrar mensajes desde los botones (ej. "Registro archivado")
-    val scope = rememberCoroutineScope()
+    // Clientes y usuarios: se vuelve a la lista solo cuando el servidor confirmó el cambio
+    LaunchedEffect(Unit) {
+        clientesViewModel.operacionExitosa.collect { mainViewModel.navigateBack() }
+    }
+    LaunchedEffect(Unit) {
+        usuariosViewModel.operacionExitosa.collect { mainViewModel.navigateBack() }
+    }
+
+    // Registros: archivar/restaurar confirmados y mensajes de sincronización
+    LaunchedEffect(Unit) {
+        registrosViewModel.cambioConfirmado.collect { mainViewModel.navigateBack() }
+    }
+    LaunchedEffect(Unit) {
+        registrosViewModel.mensajes.collect { snackbarHostState.showSnackbar(it) }
+    }
 
     // Abre el detalle de un registro guardado (lo usan el administrador y el técnico)
     val verRegistro: (RegistroGuardado) -> Unit = { registro ->
@@ -278,13 +299,8 @@ fun AppNavigation(
                 onQuitarTipoEquipo = clientesViewModel::quitarTipoEquipo,
                 onCoordenadasChange = clientesViewModel::actualizarCoordenadasInstalacion,
                 onCapturarGps = clientesViewModel::capturarUbicacionActualInstalacion,
-                onGuardarClick = {
-                    if (clientesViewModel.guardar()) mainViewModel.navigateBack()
-                },
-                onEliminarClick = {
-                    clientesViewModel.eliminar()
-                    mainViewModel.navigateBack()
-                },
+                onGuardarClick = clientesViewModel::guardar,
+                onEliminarClick = clientesViewModel::eliminar,
                 onBackClick = mainViewModel::navigateBack,
             )
         }
@@ -316,13 +332,8 @@ fun AppNavigation(
                 onNombreChange = usuariosViewModel::actualizarNombre,
                 onRolChange = usuariosViewModel::actualizarRol,
                 onPasswordChange = usuariosViewModel::actualizarPassword,
-                onGuardarClick = {
-                    if (usuariosViewModel.guardar()) mainViewModel.navigateBack()
-                },
-                onEliminarClick = {
-                    usuariosViewModel.eliminar()
-                    mainViewModel.navigateBack()
-                },
+                onGuardarClick = usuariosViewModel::guardar,
+                onEliminarClick = usuariosViewModel::eliminar,
                 onBackClick = mainViewModel::navigateBack,
             )
         }
@@ -330,10 +341,14 @@ fun AppNavigation(
         composable(Screen.Registros.route) {
             val registros by registrosViewModel.registros.collectAsState()
 
+            val sincronizando by registrosViewModel.sincronizando.collectAsState()
+
             RegistrosScreen(
                 registros = registros,
                 onRegistroClick = verRegistro,
                 onBackClick = mainViewModel::navigateBack,
+                sincronizando = sincronizando,
+                onActualizar = registrosViewModel::sincronizar,
             )
         }
 
@@ -367,16 +382,8 @@ fun AppNavigation(
                         edicionViewModel.iniciarEdicion(actual, usuario)
                         mainViewModel.navigateTo(Screen.EditarGeneral)
                     },
-                    onArchivarClick = {
-                        registrosViewModel.archivar(usuario)
-                        mainViewModel.navigateBack()
-                        scope.launch { snackbarHostState.showSnackbar("Registro archivado") }
-                    },
-                    onRestaurarClick = {
-                        registrosViewModel.restaurar()
-                        mainViewModel.navigateBack()
-                        scope.launch { snackbarHostState.showSnackbar("Registro restaurado") }
-                    },
+                    onArchivarClick = { registrosViewModel.archivar(usuario) },
+                    onRestaurarClick = { registrosViewModel.restaurar(usuario) },
                     onBackClick = mainViewModel::navigateBack,
                 )
             }

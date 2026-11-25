@@ -63,6 +63,7 @@ fun RegistroCompleto.toModel(): RegistroGuardado {
         } else {
             null
         },
+        pendienteEnvio = registro.pendiente != null,
     )
 }
 
@@ -84,7 +85,7 @@ fun EdicionRegistro.toEntity(registroId: String) = EdicionRegistroEntity(
     cambios = cambios.joinToString(SEPARADOR_CAMBIOS),
 )
 
-fun RegistroGuardado.toEntity(): RegistroCompleto {
+fun RegistroGuardado.toEntity(pendiente: String? = null, pendienteEditor: String? = null): RegistroCompleto {
     val datos = datosGenerales
     return RegistroCompleto(
         registro = RegistroEntity(
@@ -101,9 +102,12 @@ fun RegistroGuardado.toEntity(): RegistroCompleto {
             archivadoPorUsername = archivado?.porUsername,
             archivadoPorNombre = archivado?.porNombre,
             archivadoFechaMillis = archivado?.fechaMillis,
+            pendiente = pendiente,
+            pendienteEditor = pendienteEditor,
         ),
         mantenimiento = mantenimiento?.toEntity(id),
         prueba = pruebas?.toEntity(id),
+        ediciones = ediciones.map { it.toEntity(id) },
     )
 }
 

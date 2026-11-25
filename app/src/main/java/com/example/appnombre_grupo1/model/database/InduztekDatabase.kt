@@ -29,7 +29,7 @@ import com.example.appnombre_grupo1.model.database.entity.UsuarioEntity
         PruebaElectricaEntity::class,
         EdicionRegistroEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class InduztekDatabase : RoomDatabase() {
@@ -71,6 +71,14 @@ abstract class InduztekDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE instalaciones ADD COLUMN latitud REAL")
                 db.execSQL("ALTER TABLE instalaciones ADD COLUMN longitud REAL")
+            }
+        }
+
+        // Versión 3 → 4: registros pendientes de envío al servidor
+        val MIGRACION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE registros ADD COLUMN pendiente TEXT")
+                db.execSQL("ALTER TABLE registros ADD COLUMN pendienteEditor TEXT")
             }
         }
     }

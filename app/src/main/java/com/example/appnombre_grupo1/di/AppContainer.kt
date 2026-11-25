@@ -11,6 +11,9 @@ import com.example.appnombre_grupo1.model.database.InduztekDatabase
 import com.example.appnombre_grupo1.model.repository.ClienteRepository
 import com.example.appnombre_grupo1.model.repository.FotoRepository
 import com.example.appnombre_grupo1.model.repository.RegistroRepository
+import com.example.appnombre_grupo1.model.repository.SincronizacionRepository
+import com.example.appnombre_grupo1.model.remote.ApiService
+import com.example.appnombre_grupo1.model.remote.RetrofitClient
 import com.example.appnombre_grupo1.model.repository.UsuarioRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -29,7 +32,7 @@ class AppContainer(context: Context) {
         Room.databaseBuilder(context, InduztekDatabase::class.java, InduztekDatabase.NOMBRE)
             // Actualiza la base de datos de los teléfonos que tenían una versión anterior,
             // paso a paso (1 → 2 → 3), sin borrar los datos guardados
-            .addMigrations(InduztekDatabase.MIGRACION_1_2, InduztekDatabase.MIGRACION_2_3)
+            .addMigrations(InduztekDatabase.MIGRACION_1_2, InduztekDatabase.MIGRACION_2_3, InduztekDatabase.MIGRACION_3_4)
             .addCallback(
                 object : RoomDatabase.Callback() {
                     // Solo se ejecuta la primera vez, cuando se crea el archivo de la base de datos
@@ -41,9 +44,14 @@ class AppContainer(context: Context) {
             .build()
     }
 
-    val usuarioRepository by lazy { UsuarioRepository(context, database.usuarioDao()) }
-    val clienteRepository by lazy { ClienteRepository(database.clienteDao()) }
-    val registroRepository by lazy { RegistroRepository(database.registroDao()) }
+    private val api: ApiService = RetrofitClient.instance
+
+    val usuarioRepository by lazy { UsuarioRepository(context, database.usuarioDao(), api) }
+    val clienteRepository by lazy { ClienteRepository(database.clienteDao(), api) }
+    val registroRepository by lazy { RegistroRepository(database.registroDao(), api) }
+    val sincronizacionRepository by lazy {
+        SincronizacionRepository(usuarioRepository, clienteRepository, registroRepository)
+    }
     val fotoRepository = FotoRepository(context)
 }
 

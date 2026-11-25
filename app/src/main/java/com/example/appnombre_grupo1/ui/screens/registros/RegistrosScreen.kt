@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +26,8 @@ fun RegistrosScreen(
     // La misma pantalla muestra los registros activos y los archivados
     titulo: String = "Registros anteriores",
     textoVacio: String = "No hay registros guardados",
+    sincronizando: Boolean = false,
+    onActualizar: (() -> Unit)? = null,
 ) {
     // Filtro por tipo de protocolo; null muestra todos
     var filtro by remember { mutableStateOf<TipoRegistro?>(null) }
@@ -34,6 +37,15 @@ fun RegistrosScreen(
         topBar = {
             TopAppBar(
                 title = { Text(titulo) },
+                actions = {
+                    if (sincronizando) {
+                        CircularProgressIndicator(modifier = Modifier.padding(12.dp).size(24.dp), strokeWidth = 2.dp)
+                    } else if (onActualizar != null) {
+                        IconButton(onClick = onActualizar) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Actualizar desde el servidor")
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
@@ -89,6 +101,13 @@ fun RegistrosScreen(
                                                 "${datos.tecnico} · ${formatearFecha(registro.fechaMillis)}",
                                         )
                                         // Aviso de la última edición o del archivado
+                                        if (registro.pendienteEnvio) {
+                                            Text(
+                                                "Pendiente de envío al servidor",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.error,
+                                            )
+                                        }
                                         val aviso = registro.archivado?.let {
                                             "Archivado el ${formatearFecha(it.fechaMillis)} por ${it.porNombre}"
                                         } ?: registro.ediciones.firstOrNull()?.let {

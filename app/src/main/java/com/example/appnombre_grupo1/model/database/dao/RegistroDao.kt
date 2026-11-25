@@ -37,6 +37,19 @@ abstract class RegistroDao {
     )
     abstract suspend fun restaurar(id: String)
 
+    @Transaction
+    @Query("SELECT * FROM registros WHERE id = :id")
+    abstract suspend fun obtener(id: String): RegistroCompleto?
+
+    @Query("SELECT id FROM registros WHERE pendiente IS NOT NULL")
+    abstract suspend fun idsPendientes(): List<String>
+
+    @Query("SELECT id FROM registros WHERE pendiente IS NULL")
+    abstract suspend fun idsSincronizados(): List<String>
+
+    @Query("UPDATE registros SET pendiente = :pendiente, pendienteEditor = :editor WHERE id = :id")
+    abstract suspend fun marcarPendiente(id: String, pendiente: String?, editor: String?)
+
     @Query("SELECT COUNT(*) FROM mantenimientos WHERE fotoPath = :fotoPath")
     abstract suspend fun contarUsosDeFoto(fotoPath: String): Int
 
@@ -60,6 +73,46 @@ abstract class RegistroDao {
 
     @Insert
     abstract suspend fun insertarEdicion(edicion: EdicionRegistroEntity)
+
+    @Insert
+    abstract suspend fun insertarEdiciones(ediciones: List<EdicionRegistroEntity>)
+
+    @Query("DELETE FROM ediciones_registro WHERE registroId = :id")
+    abstract suspend fun eliminarEdiciones(id: String)
+
+    @Query("DELETE FROM mantenimientos WHERE registroId = :id")
+    abstract suspend fun eliminarMantenimiento(id: String)
+
+    @Query("DELETE FROM pruebas_electricas WHERE registroId = :id")
+    abstract suspend fun eliminarPrueba(id: String)
+
+    @Query("DELETE FROM registros WHERE id = :id")
+    abstract suspend fun eliminarRegistro(id: String)
+
+    @Transaction
+    open suspend fun eliminarCompleto(id: String) {
+        eliminarEdiciones(id)
+        eliminarMantenimiento(id)
+        eliminarPrueba(id)
+        eliminarRegistro(id)
+    }
+
+    // Reemplaza un registro completo (con detalle e historial) por la versión del servidor
+    @Transaction
+    open suspend fun reemplazar(registro: RegistroCompleto) {
+        eliminarCompleto(registro.registro.id)
+        guardar(registro)
+        insertarEdiciones(registro.ediciones)
+    }
+
+    // Deja la tabla igual a la lista del servidor, sin tocar los registros que aún no se envían
+    @Transaction
+    open suspend fun sincronizarCon(remotos: List<RegistroCompleto>) {
+        val pendientes = idsPendientes().toSet()
+        val idsRemotos = remotos.map { it.registro.id }.toSet()
+        idsSincronizados().filter { it !in idsRemotos }.forEach { eliminarCompleto(it) }
+        remotos.filter { it.registro.id !in pendientes }.forEach { reemplazar(it) }
+    }
 
     // Actualiza el registro editado y deja constancia de quién lo cambió, todo en una transacción
     @Transaction
