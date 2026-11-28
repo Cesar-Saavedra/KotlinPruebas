@@ -74,4 +74,8 @@ dependencies {
 
 // Iconos extendidos de Material (opcional pero muy útil si te faltan iconos como Person)
     implementation("androidx.compose.material:material-icons-extended")
+
+// Importes para test
+    testImplementation("io.mockk:mockk:1.13.12")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 }
