@@ -100,16 +100,16 @@ private fun DetallePruebas(estado: PruebasElectricasState) {
 @Composable
 private fun Historial(registro: RegistroGuardado) {
     Seccion("Historial de cambios") {
+        Dato(
+            "Creado el ${formatearFecha(registro.fechaMillis)}",
+            "por ${registro.tecnicoUsername} (@${registro.tecnicoUsername})",
+        )
         registro.ediciones.forEach { edicion ->
             Dato(
                 "Editado el ${formatearFecha(edicion.fechaMillis)} por ${edicion.editorNombre} (@${edicion.editorUsername})",
                 "Cambió: ${edicion.cambios.joinToString(", ")}",
             )
         }
-        Dato(
-            "Creado el ${formatearFecha(registro.fechaMillis)}",
-            "por ${registro.tecnicoUsername} (@${registro.tecnicoUsername})",
-        )
     }
 }
 

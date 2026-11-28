@@ -9,7 +9,7 @@ object RetrofitInstance {
     // Se instancia el servicio de la API una sola vez
     val api: ApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("http://192.168.4.10:8080/") // URL base de la API en localhost
+            .baseUrl("http://10.16.48.105:8080/") // URL base de la API en localhost
             .addConverterFactory(GsonConverterFactory.create()) // Conversor JSON
             .build()
             .create(ApiService::class.java)

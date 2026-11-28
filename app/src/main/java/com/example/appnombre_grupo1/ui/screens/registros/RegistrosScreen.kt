@@ -91,7 +91,7 @@ fun RegistrosScreen(
                                         // Aviso de la última edición o del archivado
                                         val aviso = registro.archivado?.let {
                                             "Archivado el ${formatearFecha(it.fechaMillis)} por ${it.porNombre}"
-                                        } ?: registro.ediciones.firstOrNull()?.let {
+                                        } ?: registro.ediciones.lastOrNull()?.let {
                                             "Editado el ${formatearFecha(it.fechaMillis)} por ${it.editorNombre}"
                                         }
                                         aviso?.let {
