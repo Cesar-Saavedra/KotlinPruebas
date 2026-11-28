@@ -350,7 +350,8 @@ private fun RegistroGuardado.aCrearRegistroRequestDto(
 
 
 private fun PruebasElectricasState.aPruebaElectricaDto(): PruebaElectricaDto = PruebaElectricaDto(
-    aislacion = resistenciaAislamientoMOhm.replace(",",".").toDoubleOrNull(),
+    aislacionA = resistenciaAislamientoMOhm.replace(",",".").toDoubleOrNull(),
+    aislacionV = tensionPruebaAislamiento.replace(",",".").toDoubleOrNull(),
     contacto = resistenciaContactoMicroOhm.replace(",",".").toDoubleOrNull(),
     voltaje = voltajeLineaV.replace(",", ".").toDoubleOrNull(),
     corriente = corrienteCargaA.replace(",", ".").toDoubleOrNull(),

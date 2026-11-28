@@ -81,7 +81,7 @@ private fun DetalleMantenimiento(estado: MantenimientoState) {
 @Composable
 private fun DetallePruebas(estado: PruebasElectricasState) {
     Seccion("Mediciones") {
-        Dato("Tensión de prueba de aislamiento", estado.tensionPruebaAislamiento)
+        Dato("Tensión de prueba de aislamiento", conUnidad(estado.tensionPruebaAislamiento, "V"))
         Dato("Resistencia de aislamiento", conUnidad(estado.resistenciaAislamientoMOhm, "MΩ"))
         Dato("Resistencia de contacto", conUnidad(estado.resistenciaContactoMicroOhm, "µΩ"))
         Dato("Voltaje", conUnidad(estado.voltajeLineaV, "V"))

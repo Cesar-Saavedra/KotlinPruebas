@@ -2,7 +2,7 @@ package com.example.appnombre_grupo1.data.model
 
 data class PruebasElectricasState(
     val datosGenerales: DatosGeneralesForm = DatosGeneralesForm(),
-    val tensionPruebaAislamiento: String = "1000 V",
+    val tensionPruebaAislamiento: String = "",
     val resistenciaAislamientoMOhm: String = "",
     val resistenciaContactoMicroOhm: String = "",
     val voltajeLineaV: String = "",

@@ -112,8 +112,8 @@ fun RegistroTerrenoResponseDto.aRegistroGuardado(): RegistroGuardado {
         val veredictoEnum = parseVeredictoPrueba(test?.verdict)
         PruebasElectricasState(
             datosGenerales = datosGenerales,
-            tensionPruebaAislamiento = "1000 V",
-            resistenciaAislamientoMOhm = test?.insulation?.toString().orEmpty(),
+            tensionPruebaAislamiento = test?.insulationV?.toString().orEmpty(),
+            resistenciaAislamientoMOhm = test?.insulationA?.toString().orEmpty(),
             resistenciaContactoMicroOhm = test?.contact?.toString().orEmpty(),
             voltajeLineaV = test?.voltage?.toString().orEmpty(),
             corrienteCargaA = test?.current?.toString().orEmpty(),

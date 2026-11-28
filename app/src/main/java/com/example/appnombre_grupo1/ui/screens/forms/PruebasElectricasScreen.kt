@@ -82,6 +82,16 @@ fun PruebasElectricasScreen(
             Text("2. Mediciones de Aislamiento y Resistencia", style = MaterialTheme.typography.titleMedium)
 
             OutlinedTextField(
+                value = state.tensionPruebaAislamiento,
+                onValueChange = { onStateChange(state.copy(tensionPruebaAislamiento = it)) },
+                label = { Text("Tensión de Aislamiento (V)") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
                 value = state.resistenciaAislamientoMOhm,
                 onValueChange = { onStateChange(state.copy(resistenciaAislamientoMOhm = it)) },
                 label = { Text("Resistencia de Aislamiento (MΩ)") },

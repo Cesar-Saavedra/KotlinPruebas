@@ -89,8 +89,10 @@ data class DetalleMantenimientoDto(
 )
 
 data class PruebaElectricaDto(
-    @SerializedName("insulation")
-    val aislacion: Double? = null,
+    @SerializedName("insulationA")
+    val aislacionA: Double? = null,
+    @SerializedName("insulationV")
+    val aislacionV: Double? = null,
     @SerializedName("contact")
     val contacto: Double? = null,
     @SerializedName("voltage")
@@ -155,8 +157,10 @@ data class EstadoArchivoRegistroDto(
     val archivado: Boolean,
     @SerializedName("action")
     val accion: String? = null,
-    @SerializedName("timestamp")
+    @SerializedName("updatedAt")
     val fechaHora: String? = null,
+    @SerializedName("adminName")
+    val nombreAdmin: String? = null,
 )
 
 data class DetalleMantenimientoResponseDto(
@@ -169,8 +173,10 @@ data class DetalleMantenimientoResponseDto(
 )
 
 data class PruebaElectricaResponseDto(
-    @SerializedName("insulation")
-    val insulation: Double? = null,
+    @SerializedName("insulationA")
+    val insulationA: Double? = null,
+    @SerializedName("insulationV")
+    val insulationV: Double? = null,
     @SerializedName("contact")
     val contact: Double? = null,
     @SerializedName("voltage")
